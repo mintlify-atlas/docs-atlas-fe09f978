@@ -1,80 +1,361 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Build your first interactive tree with React Apple Tree in minutes
 ---
 
-## Get started in three steps
+This guide will walk you through creating a fully functional drag-and-drop tree from scratch.
 
-Get your documentation site running locally and make your first customization.
+## Basic Setup
 
-### Step 1: Set up your local environment
+<Steps>
+  <Step title="Import the component">
+    Start by importing React Apple Tree and React hooks:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```jsx
+    import React, { useState } from 'react';
+    import ReactAppleTree from '@newtonschool/react-apple-tree';
+    ```
+  </Step>
 
-### Step 2: Deploy your changes
+  <Step title="Create your tree data">
+    Define your initial tree structure. Each node can have a `title`, `subtitle`, `expanded` state, and nested `children`:
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    ```jsx
+    const [treeData, setTreeData] = useState([
+      {
+        id: 1,
+        title: 'Node 1',
+        children: [
+          { id: 2, title: 'Node 1.1' }
+        ],
+      },
+      {
+        id: 3,
+        title: 'Node 2',
+        children: [
+          { id: 4, title: 'Node 2.1' },
+          { 
+            id: 5, 
+            title: 'Node 2.2',
+            children: [
+              { id: 6, title: 'Node 2.2.1' }
+            ]
+          },
+        ],
+      },
+      {
+        id: 7,
+        title: 'Node 3',
+      },
+    ]);
+    ```
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    <Note>
+      The `id` field is optional but recommended for easier node identification.
+    </Note>
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Add a container with fixed height">
+    React Apple Tree requires a container with a fixed height to enable virtualization:
 
-### Step 3: Go live
+    ```jsx
+    <div style={{ height: 400 }}>
+      {/* Tree component goes here */}
+    </div>
+    ```
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    <Warning>
+      Without a fixed height, the tree will not render properly. You can use any CSS unit (px, vh, rem, etc.).
+    </Warning>
+  </Step>
 
-## Next steps
+  <Step title="Render the tree with required props">
+    React Apple Tree requires three essential props:
 
-Now that you have your docs running, explore these key features:
+    ```jsx
+    <ReactAppleTree
+      treeData={treeData}
+      onChange={(newTreeData) => setTreeData(newTreeData)}
+      getNodeKey={({ node }) => node.id}
+    />
+    ```
 
-<CardGroup cols={2}>
+    ### Required Props Explained:
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+    - **`treeData`**: Array of tree nodes representing your hierarchical data
+    - **`onChange`**: Callback function that receives updated tree data after any modification
+    - **`getNodeKey`**: Function that returns a unique identifier for each node
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+    <Tip>
+      The `getNodeKey` function should return a stable, unique identifier. Using the node's `id` is recommended, but you can use any unique property like `title` or a combination of properties.
+    </Tip>
+  </Step>
+</Steps>
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+## Complete Working Example
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+Here's the complete code for a basic interactive tree:
 
-</CardGroup>
+```jsx
+import React, { useState } from 'react';
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+function MyTree() {
+  const [treeData, setTreeData] = useState([
+    {
+      id: 1,
+      title: 'Node 1',
+      children: [
+        { id: 2, title: 'Node 1.1' }
+      ],
+    },
+    {
+      id: 3,
+      title: 'Node 2',
+      children: [
+        { id: 4, title: 'Node 2.1' },
+        { 
+          id: 5, 
+          title: 'Node 2.2',
+          children: [
+            { id: 6, title: 'Node 2.2.1' }
+          ]
+        },
+      ],
+    },
+    {
+      id: 7,
+      title: 'Node 3',
+    },
+  ]);
+
+  return (
+    <div style={{ height: 400 }}>
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={(newTreeData) => setTreeData(newTreeData)}
+        getNodeKey={({ node }) => node.id}
+      />
+    </div>
+  );
+}
+
+export default MyTree;
+```
+
+## Understanding Tree Data Structure
+
+Each node in your tree data is a `TreeItem` object with the following properties:
+
+```typescript
+type TreeItem = {
+  // Optional unique identifier
+  id?: string | number;
+  
+  // Primary label (required for display)
+  title?: React.ReactNode;
+  
+  // Secondary label displayed below title
+  subtitle?: React.ReactNode;
+  
+  // Controls whether children are visible (defaults to false)
+  expanded?: boolean;
+  
+  // Nested child nodes
+  children?: Array<TreeItem>;
+  
+  // You can add any custom properties
+  [key: string]: any;
+};
+```
+
+### Example with All Properties:
+
+```jsx
+const richTreeData = [
+  {
+    id: 1,
+    title: 'Documents',
+    subtitle: '5 items',
+    expanded: true,
+    icon: 'folder',
+    metadata: { size: '2.3 MB' },
+    children: [
+      {
+        id: 2,
+        title: 'Report.pdf',
+        subtitle: 'Last modified: Today',
+        icon: 'file',
+      },
+    ],
+  },
+];
+```
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  You can extend the tree node with any custom properties you need. Access them through the `node` object in callbacks and custom renderers.
 </Note>
+
+## Interactive Features
+
+With just these three props, you get:
+
+- **Drag and Drop**: Click and drag nodes to reorder or nest them
+- **Expand/Collapse**: Click the arrow icon to show or hide children
+- **Keyboard Navigation**: Use arrow keys to navigate the tree
+- **Virtualization**: Smooth performance even with thousands of nodes
+
+## Controlling Expansion State
+
+To start with nodes expanded:
+
+```jsx
+const [treeData, setTreeData] = useState([
+  {
+    id: 1,
+    title: 'Parent Node',
+    expanded: true, // This node starts expanded
+    children: [
+      { id: 2, title: 'Visible Child' }
+    ],
+  },
+]);
+```
+
+## Using Alternative Key Functions
+
+If your nodes don't have an `id` field, you can use other properties:
+
+```jsx
+// Using title as key (ensure titles are unique)
+getNodeKey={({ node }) => node.title}
+
+// Using tree index as key
+getNodeKey={({ treeIndex }) => treeIndex}
+
+// Using a combination
+getNodeKey={({ node, treeIndex }) => `${node.title}-${treeIndex}`}
+```
+
+<Warning>
+  Using `treeIndex` alone may cause issues when nodes are reordered. It's best to use a stable property like `id` or `title`.
+</Warning>
+
+## Handling Changes
+
+The `onChange` callback is called whenever the tree data changes:
+
+```jsx
+const handleChange = (newTreeData) => {
+  console.log('Tree updated:', newTreeData);
+  setTreeData(newTreeData);
+  
+  // You can also persist to a backend here
+  // saveToBackend(newTreeData);
+};
+
+<ReactAppleTree
+  treeData={treeData}
+  onChange={handleChange}
+  getNodeKey={({ node }) => node.id}
+/>
+```
+
+## TypeScript Usage
+
+If you're using TypeScript, you can type your tree data:
+
+```typescript
+import React, { useState } from 'react';
+import ReactAppleTree, { TreeItem } from '@newtonschool/react-apple-tree';
+
+interface MyNodeData {
+  id: number;
+  title: string;
+  icon?: string;
+  metadata?: Record<string, any>;
+}
+
+function MyTree() {
+  const [treeData, setTreeData] = useState<Array<TreeItem<MyNodeData>>>([
+    {
+      id: 1,
+      title: 'Node 1',
+      icon: 'folder',
+      metadata: { color: 'blue' },
+    },
+  ]);
+
+  return (
+    <div style={{ height: 400 }}>
+      <ReactAppleTree<MyNodeData>
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+      />
+    </div>
+  );
+}
+```
+
+## Common Patterns
+
+### Empty Tree State
+
+```jsx
+const [treeData, setTreeData] = useState([]);
+
+// The tree will render an empty state automatically
+```
+
+### Loading Initial Data
+
+```jsx
+const [treeData, setTreeData] = useState([]);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  fetchTreeData().then((data) => {
+    setTreeData(data);
+    setLoading(false);
+  });
+}, []);
+
+if (loading) return <div>Loading...</div>;
+
+return (
+  <div style={{ height: 400 }}>
+    <ReactAppleTree
+      treeData={treeData}
+      onChange={setTreeData}
+      getNodeKey={({ node }) => node.id}
+    />
+  </div>
+);
+```
+
+## Next Steps
+
+Now that you have a working tree, explore more advanced features:
+
+<CardGroup cols={2}>
+  <Card title="Props Reference" icon="book" href="/props">
+    Explore all available props and customization options
+  </Card>
+  
+  <Card title="Callbacks & Events" icon="bolt" href="/callbacks">
+    Learn about event handlers and lifecycle callbacks
+  </Card>
+  
+  <Card title="Helper Functions" icon="wrench" href="/helpers">
+    Use utility functions to manipulate tree data
+  </Card>
+  
+  <Card title="Examples" icon="code" href="/examples">
+    See practical examples and common use cases
+  </Card>
+</CardGroup>
+
+## Try It Out
+
+Visit the [Storybook](https://react-apple-tree.newtonschool.co/) to see interactive examples and experiment with different configurations.

@@ -1,0 +1,628 @@
+---
+title: "Behavior Props"
+description: "Props that control the behavior and functionality of ReactAppleTree"
+---
+
+# Behavior Props
+
+Behavior props control how the tree functions, including depth limits, direction, virtualization, and drag-and-drop behavior.
+
+---
+
+## maxDepth
+
+<ParamField path="maxDepth" type="number">
+  Maximum depth that nodes can be nested. Use this to limit how deeply items can be nested in the tree hierarchy.
+
+  ### TypeScript Signature
+  ```typescript
+  type MaxDepth = number | undefined;
+  ```
+
+  ### Default
+  `undefined` (infinite depth)
+
+  ### Example: Limit to 3 Levels
+  ```jsx
+  import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+  function TreeWithDepthLimit() {
+    const [treeData, setTreeData] = useState([
+      {
+        id: 1,
+        title: 'Level 1',
+        children: [
+          {
+            id: 2,
+            title: 'Level 2',
+            children: [
+              { id: 3, title: 'Level 3 (max)' },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    return (
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+        maxDepth={3}
+      />
+    );
+  }
+  ```
+
+  ### Example: Flat List (No Nesting)
+  ```jsx
+  // Prevent any nesting by setting maxDepth to 1
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    maxDepth={1}
+  />
+  ```
+
+  ### Example: Dynamic Depth Limit
+  ```jsx
+  function TreeWithDynamicDepth() {
+    const [maxDepth, setMaxDepth] = useState(3);
+    const [treeData, setTreeData] = useState(initialData);
+
+    return (
+      <div>
+        <label>
+          Max Depth:
+          <select 
+            value={maxDepth} 
+            onChange={(e) => setMaxDepth(Number(e.target.value))}
+          >
+            <option value={1}>1 (Flat)</option>
+            <option value={2}>2</option>
+            <option value={3}>3</option>
+            <option value={5}>5</option>
+            <option value={999}>Unlimited</option>
+          </select>
+        </label>
+
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+          maxDepth={maxDepth === 999 ? undefined : maxDepth}
+        />
+      </div>
+    );
+  }
+  ```
+
+  ### Use Cases
+  - **Category systems**: Limit categories to 2-3 levels
+  - **File systems**: Prevent overly deep folder structures
+  - **Organization charts**: Enforce a maximum management hierarchy
+  - **Menu builders**: Limit navigation menu depth
+
+  <Note>
+    `maxDepth` counts from 1. A `maxDepth` of 1 means only root-level items with no children allowed.
+  </Note>
+</ParamField>
+
+---
+
+## rowDirection
+
+<ParamField path="rowDirection" type="'ltr' | 'rtl'">
+  Direction in which tree rows are rendered. Use `'rtl'` (right-to-left) for languages like Arabic or Hebrew.
+
+  ### TypeScript Signature
+  ```typescript
+  type RowDirection = 'ltr' | 'rtl' | undefined;
+  ```
+
+  ### Default
+  `'ltr'` (left-to-right)
+
+  ### Example: Right-to-Left Tree
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    rowDirection="rtl"
+  />
+  ```
+
+  ### Example: Dynamic Direction Based on Locale
+  ```jsx
+  import { useState, useEffect } from 'react';
+  import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+  function LocalizedTree() {
+    const [locale, setLocale] = useState('en-US');
+    const [treeData, setTreeData] = useState(initialData);
+
+    // RTL languages
+    const rtlLocales = ['ar', 'he', 'fa', 'ur'];
+    const isRTL = rtlLocales.some(rtl => locale.startsWith(rtl));
+
+    return (
+      <div>
+        <select value={locale} onChange={(e) => setLocale(e.target.value)}>
+          <option value="en-US">English</option>
+          <option value="ar-SA">Arabic</option>
+          <option value="he-IL">Hebrew</option>
+        </select>
+
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+          rowDirection={isRTL ? 'rtl' : 'ltr'}
+        />
+      </div>
+    );
+  }
+  ```
+
+  ### Visual Difference
+  - **LTR**: Expand/collapse icons and indentation on the left
+  - **RTL**: Expand/collapse icons and indentation on the right
+
+  <Note>
+    Changing `rowDirection` only affects the tree structure layout. You'll need to handle text direction separately using CSS `direction` property or `dir` attribute.
+  </Note>
+</ParamField>
+
+---
+
+## isVirtualized
+
+<ParamField path="isVirtualized" type="boolean">
+  Whether to use virtualization for rendering the tree. Virtualization significantly improves performance for large trees by only rendering visible nodes.
+
+  ### TypeScript Signature
+  ```typescript
+  type IsVirtualized = boolean | undefined;
+  ```
+
+  ### Default
+  `true`
+
+  ### When to Use Virtualization (Default)
+  - Trees with hundreds or thousands of nodes
+  - Performance is critical
+  - Tree height is constrained (has a fixed height container)
+
+  ### When to Disable Virtualization
+  - Very small trees (< 100 nodes)
+  - Need to support browser's native find (Ctrl+F)
+  - Need to print the entire tree
+  - Using features that conflict with virtualization
+
+  ### Example: Disable Virtualization
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    isVirtualized={false}
+  />
+  ```
+
+  ### Example: Small Printable Tree
+  ```jsx
+  function PrintableTree({ data }) {
+    return (
+      <div className="printable-tree">
+        <ReactAppleTree
+          treeData={data}
+          onChange={() => {}} // Read-only for printing
+          getNodeKey={({ node }) => node.id}
+          isVirtualized={false}
+          canDrag={false}
+          style={{ height: 'auto' }} // Remove fixed height
+        />
+      </div>
+    );
+  }
+  ```
+
+  ### Example: Conditional Virtualization
+  ```jsx
+  function AdaptiveTree({ treeData }) {
+    const [isVirtualized, setIsVirtualized] = useState(true);
+
+    // Count total visible nodes
+    const nodeCount = countVisibleNodes(treeData);
+
+    // Disable virtualization for small trees
+    useEffect(() => {
+      setIsVirtualized(nodeCount > 100);
+    }, [nodeCount]);
+
+    return (
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+        isVirtualized={isVirtualized}
+      />
+    );
+  }
+  ```
+
+  ### Performance Comparison
+  | Tree Size | Virtualized | Non-Virtualized |
+  |-----------|-------------|------------------|
+  | 100 nodes | ~16ms | ~18ms |
+  | 1,000 nodes | ~16ms | ~150ms |
+  | 10,000 nodes | ~16ms | ~1500ms+ |
+
+  <Warning>
+    When virtualization is enabled, you must provide a fixed height to the tree container. Without a fixed height, virtualization cannot calculate which nodes are visible.
+  </Warning>
+</ParamField>
+
+---
+
+## dndType
+
+<ParamField path="dndType" type="string">
+  The drag-and-drop type identifier used by react-dnd. Required when integrating with external drag sources or drop targets.
+
+  ### TypeScript Signature
+  ```typescript
+  type DNDType = string | undefined;
+  ```
+
+  ### Default
+  `'REACT_APPLE_TREE_ITEM'`
+
+  ### Example: Basic Usage
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    dndType="MY_TREE_ITEM"
+  />
+  ```
+
+  ### Example: External Drag Sources
+  ```jsx
+  import { useDrag } from 'react-dnd';
+  import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+  const TREE_ITEM_TYPE = 'MY_TREE_ITEM';
+
+  function ExternalDragItem({ item }) {
+    const [{ isDragging }, drag] = useDrag(() => ({
+      type: TREE_ITEM_TYPE,
+      item: { node: item },
+      collect: (monitor) => ({
+        isDragging: monitor.isDragging(),
+      }),
+    }));
+
+    return (
+      <div ref={drag} style={{ opacity: isDragging ? 0.5 : 1 }}>
+        {item.title}
+      </div>
+    );
+  }
+
+  function TreeWithExternalItems() {
+    const [treeData, setTreeData] = useState([]);
+    const externalItems = [
+      { id: 'ext-1', title: 'Drag me into the tree' },
+      { id: 'ext-2', title: 'Or me!' },
+    ];
+
+    return (
+      <div style={{ display: 'flex' }}>
+        <div style={{ width: 200, padding: 20 }}>
+          <h3>Drag from here:</h3>
+          {externalItems.map(item => (
+            <ExternalDragItem key={item.id} item={item} />
+          ))}
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <ReactAppleTree
+            treeData={treeData}
+            onChange={setTreeData}
+            getNodeKey={({ node }) => node.id}
+            dndType={TREE_ITEM_TYPE}
+          />
+        </div>
+      </div>
+    );
+  }
+  ```
+
+  ### Example: Multiple Trees
+  ```jsx
+  function MultipleTreesApp() {
+    const [tree1, setTree1] = useState(tree1Data);
+    const [tree2, setTree2] = useState(tree2Data);
+
+    // Use same dndType to allow dragging between trees
+    const sharedDndType = 'SHARED_TREE_ITEM';
+
+    return (
+      <div style={{ display: 'flex', gap: 20 }}>
+        <div style={{ flex: 1 }}>
+          <h3>Tree 1</h3>
+          <ReactAppleTree
+            treeData={tree1}
+            onChange={setTree1}
+            getNodeKey={({ node }) => node.id}
+            dndType={sharedDndType}
+          />
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <h3>Tree 2</h3>
+          <ReactAppleTree
+            treeData={tree2}
+            onChange={setTree2}
+            getNodeKey={({ node }) => node.id}
+            dndType={sharedDndType}
+          />
+        </div>
+      </div>
+    );
+  }
+  ```
+
+  <Note>
+    All trees that should allow cross-dragging must use the **same** `dndType` value.
+  </Note>
+</ParamField>
+
+---
+
+## shouldCopyOnOutsideDrop
+
+<ParamField path="shouldCopyOnOutsideDrop" type="boolean | ((data: ShouldCopyData<T>) => boolean)">
+  Determines whether nodes should be copied (instead of moved) when dropped outside the tree to external react-dnd drop targets.
+
+  ### TypeScript Signature
+  ```typescript
+  type ShouldCopyOnOutsideDropFn<T> =
+    | boolean
+    | ((data: ShouldCopyData<T>) => boolean)
+    | undefined;
+
+  interface ShouldCopyData<T = {}> {
+    node: TreeNode<T>;
+    prevPath: NumberOrStringArray;
+    prevTreeIndex: number;
+  }
+  ```
+
+  ### Default
+  `false` (nodes are removed from tree on outside drop)
+
+  ### Example: Always Copy on Outside Drop
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    shouldCopyOnOutsideDrop={true}
+  />
+  ```
+
+  ### Example: Conditional Copying
+  ```jsx
+  const shouldCopyOnOutsideDrop = ({ node }) => {
+    // Only copy folders, remove files
+    return node.type === 'folder';
+  };
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    shouldCopyOnOutsideDrop={shouldCopyOnOutsideDrop}
+  />
+  ```
+
+  ### Example: Copy with Modifier Key
+  ```jsx
+  function TreeWithCopyOption() {
+    const [copyMode, setCopyMode] = useState(false);
+
+    // Listen for Ctrl/Cmd key
+    useEffect(() => {
+      const handleKeyDown = (e) => {
+        if (e.ctrlKey || e.metaKey) setCopyMode(true);
+      };
+      const handleKeyUp = (e) => {
+        if (!e.ctrlKey && !e.metaKey) setCopyMode(false);
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('keyup', handleKeyUp);
+      
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('keyup', handleKeyUp);
+      };
+    }, []);
+
+    return (
+      <div>
+        <p>{copyMode ? 'Copy mode (Ctrl held)' : 'Move mode'}</p>
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+          shouldCopyOnOutsideDrop={copyMode}
+        />
+      </div>
+    );
+  }
+  ```
+
+  ### Example: Tree to Trash Bin
+  ```jsx
+  import { useDrop } from 'react-dnd';
+
+  function TrashBin({ onDrop }) {
+    const [{ isOver }, drop] = useDrop(() => ({
+      accept: 'TREE_ITEM',
+      drop: (item) => onDrop(item),
+      collect: (monitor) => ({
+        isOver: monitor.isOver(),
+      }),
+    }));
+
+    return (
+      <div ref={drop} style={{ 
+        padding: 20, 
+        backgroundColor: isOver ? '#ffcccc' : '#f0f0f0' 
+      }}>
+        Drop here to delete
+      </div>
+    );
+  }
+
+  function TreeWithTrash() {
+    const [treeData, setTreeData] = useState(initialData);
+
+    const handleTrashDrop = (item) => {
+      console.log('Deleted:', item.node.title);
+      // Tree will automatically remove the node
+    };
+
+    return (
+      <div>
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+          dndType="TREE_ITEM"
+          shouldCopyOnOutsideDrop={false} // Remove on drop
+        />
+        <TrashBin onDrop={handleTrashDrop} />
+      </div>
+    );
+  }
+  ```
+
+  <Tip>
+    Use `shouldCopyOnOutsideDrop={true}` when you want to allow users to duplicate tree items by dragging them to external drop zones.
+  </Tip>
+</ParamField>
+
+---
+
+## Complete Example
+
+Here's a complete example combining multiple behavior props:
+
+```jsx
+import React, { useState } from 'react';
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+function ConfigurableTree() {
+  const [treeData, setTreeData] = useState([
+    {
+      id: 1,
+      title: 'Root',
+      expanded: true,
+      children: [
+        { id: 2, title: 'Child 1' },
+        { id: 3, title: 'Child 2' },
+      ],
+    },
+  ]);
+
+  const [config, setConfig] = useState({
+    maxDepth: 3,
+    rowDirection: 'ltr',
+    isVirtualized: true,
+    shouldCopyOnOutsideDrop: false,
+  });
+
+  return (
+    <div>
+      <div style={{ marginBottom: 20 }}>
+        <label>
+          Max Depth:
+          <input
+            type="number"
+            value={config.maxDepth}
+            onChange={(e) => setConfig({ 
+              ...config, 
+              maxDepth: Number(e.target.value) 
+            })}
+            min={1}
+            max={10}
+          />
+        </label>
+
+        <label style={{ marginLeft: 20 }}>
+          <input
+            type="checkbox"
+            checked={config.rowDirection === 'rtl'}
+            onChange={(e) => setConfig({
+              ...config,
+              rowDirection: e.target.checked ? 'rtl' : 'ltr',
+            })}
+          />
+          Right-to-Left
+        </label>
+
+        <label style={{ marginLeft: 20 }}>
+          <input
+            type="checkbox"
+            checked={config.isVirtualized}
+            onChange={(e) => setConfig({
+              ...config,
+              isVirtualized: e.target.checked,
+            })}
+          />
+          Virtualized
+        </label>
+
+        <label style={{ marginLeft: 20 }}>
+          <input
+            type="checkbox"
+            checked={config.shouldCopyOnOutsideDrop}
+            onChange={(e) => setConfig({
+              ...config,
+              shouldCopyOnOutsideDrop: e.target.checked,
+            })}
+          />
+          Copy on Outside Drop
+        </label>
+      </div>
+
+      <div style={{ height: 400, border: '1px solid #ccc' }}>
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+          maxDepth={config.maxDepth}
+          rowDirection={config.rowDirection}
+          isVirtualized={config.isVirtualized}
+          shouldCopyOnOutsideDrop={config.shouldCopyOnOutsideDrop}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default ConfigurableTree;
+```
+
+## Related Props
+
+- See [Callback Props](/api/props/callback-props) for `canDrop` and `canNodeHaveChildren` which complement behavior controls
+- See [Required Props](/api/props/required-props) for basic tree setup
+- See [Styling Props](/api/props/styling-props) for visual customization

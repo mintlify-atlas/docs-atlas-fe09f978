@@ -1,0 +1,250 @@
+---
+title: ReactAppleTreeWithoutDndContext
+description: React Apple Tree component without DndProvider wrapper for advanced use cases
+---
+
+## Overview
+
+`ReactAppleTreeWithoutDndContext` is a named export that provides the tree component without a built-in `DndProvider`. Use this when you need to control the drag-and-drop context yourself.
+
+## Import
+
+```tsx
+import { ReactAppleTreeWithoutDndContext } from 'react-apple-tree';
+```
+
+## TypeScript Signature
+
+```tsx
+function ReactAppleTreeWithoutDndContext<T>(
+  props: React.PropsWithChildren<ReactAppleTreeProps<T>>
+): React.ReactElement
+```
+
+The component is generic and accepts a type parameter `T` for custom data attached to tree nodes.
+
+## When to Use
+
+Use `ReactAppleTreeWithoutDndContext` when:
+
+- You need to customize the DnD backend (e.g., touch backend for mobile)
+- You have multiple trees that share drag-and-drop functionality
+- You already have a `DndProvider` in your component tree
+- You want to integrate with other drag-and-drop components
+- You need to use a custom drag-and-drop manager
+
+<Warning>
+  You **must** wrap this component in a `DndProvider` from `react-dnd` for drag-and-drop to work. If you don't need to customize the DnD setup, use [`ReactAppleTree`](/api/react-apple-tree) instead.
+</Warning>
+
+## Basic Usage with Custom DndProvider
+
+```tsx
+import { ReactAppleTreeWithoutDndContext } from 'react-apple-tree';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { useState } from 'react';
+import type { TreeItem } from 'react-apple-tree';
+
+function App() {
+  const [treeData, setTreeData] = useState<TreeItem[]>([
+    {
+      id: 1,
+      title: 'Parent Node',
+      expanded: true,
+      children: [
+        {
+          id: 2,
+          title: 'Child Node',
+        },
+      ],
+    },
+  ]);
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <ReactAppleTreeWithoutDndContext
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node, treeIndex }) => node.id ?? treeIndex}
+      />
+    </DndProvider>
+  );
+}
+```
+
+## Using Touch Backend for Mobile
+
+```tsx
+import { ReactAppleTreeWithoutDndContext } from 'react-apple-tree';
+import { DndProvider } from 'react-dnd';
+import { TouchBackend } from 'react-dnd-touch-backend';
+import { useState } from 'react';
+
+function MobileTreeApp() {
+  const [treeData, setTreeData] = useState([...]);
+
+  return (
+    <DndProvider backend={TouchBackend} options={{ enableMouseEvents: true }}>
+      <ReactAppleTreeWithoutDndContext
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+      />
+    </DndProvider>
+  );
+}
+```
+
+## Multiple Trees Sharing DnD Context
+
+When you have multiple trees that can drag-and-drop between each other, wrap them all in a single `DndProvider`:
+
+```tsx
+import { ReactAppleTreeWithoutDndContext } from 'react-apple-tree';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { useState } from 'react';
+
+function MultiTreeApp() {
+  const [leftTreeData, setLeftTreeData] = useState([...]);
+  const [rightTreeData, setRightTreeData] = useState([...]);
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <div style={{ display: 'flex', gap: '2rem' }}>
+        <div style={{ flex: 1 }}>
+          <h2>Tree 1</h2>
+          <ReactAppleTreeWithoutDndContext
+            treeData={leftTreeData}
+            onChange={setLeftTreeData}
+            getNodeKey={({ node }) => node.id}
+            dndType="SHARED_TREE_ITEM"
+          />
+        </div>
+        
+        <div style={{ flex: 1 }}>
+          <h2>Tree 2</h2>
+          <ReactAppleTreeWithoutDndContext
+            treeData={rightTreeData}
+            onChange={setRightTreeData}
+            getNodeKey={({ node }) => node.id}
+            dndType="SHARED_TREE_ITEM"
+          />
+        </div>
+      </div>
+    </DndProvider>
+  );
+}
+```
+
+<Tip>
+  When using multiple trees, set the same `dndType` prop on both trees to enable dragging nodes between them.
+</Tip>
+
+## Integration with Other DnD Components
+
+```tsx
+import { ReactAppleTreeWithoutDndContext } from 'react-apple-tree';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
+function CustomDragItem({ item }) {
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'CUSTOM_ITEM',
+    item: { id: item.id },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }));
+
+  return (
+    <div ref={drag} style={{ opacity: isDragging ? 0.5 : 1 }}>
+      {item.name}
+    </div>
+  );
+}
+
+function App() {
+  const [treeData, setTreeData] = useState([...]);
+  const [customItems] = useState([...]);
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <div style={{ display: 'flex' }}>
+        <div>
+          <h3>Custom Items</h3>
+          {customItems.map(item => (
+            <CustomDragItem key={item.id} item={item} />
+          ))}
+        </div>
+        
+        <div style={{ flex: 1 }}>
+          <ReactAppleTreeWithoutDndContext
+            treeData={treeData}
+            onChange={setTreeData}
+            getNodeKey={({ node }) => node.id}
+          />
+        </div>
+      </div>
+    </DndProvider>
+  );
+}
+```
+
+## Props
+
+The `ReactAppleTreeWithoutDndContext` component accepts the exact same props as [`ReactAppleTree`](/api/react-apple-tree). See the [ReactAppleTreeProps API reference](/api/props/react-apple-tree-props) for a complete list.
+
+### Key Props for Multi-Tree Scenarios
+
+- **`dndType`** - Custom drag-and-drop type identifier (default: "REACT_APPLE_TREE_ITEM")
+  - Use the same `dndType` across multiple trees to enable cross-tree dragging
+  
+- **`canDrop`** - Function to control whether a node can be dropped in a location
+  - Useful for restricting drops between different trees
+
+- **`shouldCopyOnOutsideDrop`** - Whether to copy (instead of move) when dropping outside the tree
+  - Helpful when dragging between trees
+
+## Implementation Details
+
+This component provides the core tree functionality with all internal context providers, but without the `DndProvider` wrapper:
+
+```tsx
+function ReactAppleTreeWithoutDndContext<T>(
+  props: React.PropsWithChildren<ReactAppleTreeProps<T>>
+) {
+  return (
+    <PropDataContextProvider>
+      <TreeDataContextProvider>
+        <SearchContextProvider>
+          <DNDContextProvider>
+            <StyledReactAppleTree className={props.className}>
+              <TreeList {...props} />
+            </StyledReactAppleTree>
+          </DNDContextProvider>
+        </SearchContextProvider>
+      </TreeDataContextProvider>
+    </PropDataContextProvider>
+  );
+}
+```
+
+## Comparison with ReactAppleTree
+
+| Feature | ReactAppleTree | ReactAppleTreeWithoutDndContext |
+|---------|----------------|--------------------------------|
+| DndProvider included | Yes (HTML5Backend) | No - you provide it |
+| Simplest setup | ✓ | |
+| Custom DnD backend | | ✓ |
+| Multiple trees | | ✓ |
+| Integration with other DnD components | | ✓ |
+| Props accepted | ReactAppleTreeProps | ReactAppleTreeProps |
+| Import style | Default export | Named export |
+
+## Related Components
+
+- [`ReactAppleTree`](/api/react-apple-tree) - Default component with built-in DndProvider
+- [ReactAppleTreeProps](/api/props/react-apple-tree-props) - Complete prop reference
+- [TreeItem](/api/types/tree-item) - Tree node structure

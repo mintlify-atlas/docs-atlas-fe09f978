@@ -1,0 +1,487 @@
+---
+title: "Search Operations"
+description: "Functions for searching, filtering, and analyzing tree structures"
+---
+
+## Overview
+
+Search operations help you find nodes, analyze relationships, and calculate tree metrics. These functions are essential for implementing search features, validating tree structure, and understanding node relationships.
+
+## find
+
+Search for nodes matching a query in the tree and optionally expand paths to matches.
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The tree data to search
+</ParamField>
+
+<ParamField path="getNodeKey" type="GetNodeKeyFn<T>" required>
+  Function to get the unique key of each node
+</ParamField>
+
+<ParamField path="searchQuery" type="any" required>
+  The search query (can be string, object, or any type)
+</ParamField>
+
+<ParamField path="searchMethod" type="SearchMethodFn<T>" required>
+  Function that returns true if a node matches the search query
+</ParamField>
+
+<ParamField path="searchFocusOffset" type="number">
+  Index of the match to focus (0 = first match, 1 = second match, etc.)
+</ParamField>
+
+<ParamField path="expandAllMatchPaths" type="boolean" default="false">
+  Whether to expand paths to all matching nodes
+</ParamField>
+
+<ParamField path="expandFocusMatchPaths" type="boolean" default="true">
+  Whether to expand the path to the focused match
+</ParamField>
+
+<ResponseField name="return" type="{ matches: Array<NodeData<T>>, treeData: Array<TreeItem<T>> }">
+  Object containing array of matching nodes and updated tree data with expanded paths
+</ResponseField>
+
+### Example
+
+```typescript
+import { find } from '@newtonschool/react-apple-tree';
+
+// Basic text search
+const searchNodes = (query: string) => {
+  const { matches, treeData: expandedTree } = find({
+    treeData,
+    getNodeKey: ({ node }) => node.id,
+    searchQuery: query,
+    searchMethod: ({ node, searchQuery }) => {
+      const title = node.title?.toString().toLowerCase() || '';
+      const query = searchQuery.toLowerCase();
+      return title.includes(query);
+    },
+    expandAllMatchPaths: true, // Expand paths to all matches
+  });
+
+  console.log(`Found ${matches.length} matches`);
+  setTreeData(expandedTree); // Tree with expanded paths
+};
+
+// Search with focus
+const [focusIndex, setFocusIndex] = useState(0);
+const [searchResults, setSearchResults] = useState([]);
+
+const handleSearch = (query: string) => {
+  const result = find({
+    treeData,
+    getNodeKey: ({ node }) => node.id,
+    searchQuery: query,
+    searchMethod: ({ node, searchQuery }) => {
+      return node.title?.toString().toLowerCase().includes(
+        searchQuery.toLowerCase()
+      );
+    },
+    searchFocusOffset: focusIndex,
+    expandFocusMatchPaths: true, // Only expand path to focused match
+  });
+
+  setSearchResults(result.matches);
+  setTreeData(result.treeData);
+};
+
+const handleNextMatch = () => {
+  if (searchResults.length > 0) {
+    const newIndex = (focusIndex + 1) % searchResults.length;
+    setFocusIndex(newIndex);
+    handleSearch(currentQuery);
+  }
+};
+```
+
+### Advanced Search Methods
+
+```typescript
+// Case-sensitive search
+const caseSensitiveSearch = find({
+  treeData,
+  getNodeKey: ({ node }) => node.id,
+  searchQuery: 'MyFile',
+  searchMethod: ({ node, searchQuery }) => {
+    return node.title?.toString().includes(searchQuery) || false;
+  },
+});
+
+// Multi-field search
+interface FileNode {
+  id: string;
+  title: string;
+  description?: string;
+  tags?: string[];
+}
+
+const multiFieldSearch = find({
+  treeData,
+  getNodeKey: ({ node }) => node.id,
+  searchQuery: 'react',
+  searchMethod: ({ node, searchQuery }) => {
+    const query = searchQuery.toLowerCase();
+    const title = node.title?.toLowerCase() || '';
+    const desc = node.description?.toLowerCase() || '';
+    const tags = node.tags?.join(' ').toLowerCase() || '';
+    
+    return title.includes(query) || 
+           desc.includes(query) || 
+           tags.includes(query);
+  },
+});
+
+// Regex search
+const regexSearch = find({
+  treeData,
+  getNodeKey: ({ node }) => node.id,
+  searchQuery: /^file-\d+$/i,
+  searchMethod: ({ node, searchQuery }) => {
+    const title = node.title?.toString() || '';
+    return searchQuery.test(title);
+  },
+});
+
+// Complex object search
+interface SearchCriteria {
+  text?: string;
+  type?: string;
+  dateAfter?: Date;
+}
+
+const advancedSearch = find({
+  treeData,
+  getNodeKey: ({ node }) => node.id,
+  searchQuery: {
+    text: 'report',
+    type: 'document',
+    dateAfter: new Date('2024-01-01'),
+  } as SearchCriteria,
+  searchMethod: ({ node, searchQuery }) => {
+    const criteria = searchQuery as SearchCriteria;
+    let matches = true;
+
+    if (criteria.text) {
+      matches = matches && node.title?.toString().toLowerCase()
+        .includes(criteria.text.toLowerCase());
+    }
+
+    if (criteria.type) {
+      matches = matches && node.type === criteria.type;
+    }
+
+    if (criteria.dateAfter && node.createdAt) {
+      matches = matches && new Date(node.createdAt) > criteria.dateAfter;
+    }
+
+    return matches;
+  },
+});
+```
+
+<Tip>
+The `find` function returns an updated tree with expanded paths, making it easy to show search results to users.
+</Tip>
+
+---
+
+## isDescendant
+
+Check if one node is a descendant of another node.
+
+<ParamField path="older" type="TreeItem<T>" required>
+  Potential ancestor node
+</ParamField>
+
+<ParamField path="younger" type="TreeItem<T>" required>
+  Potential descendant node
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if younger is a descendant of older, false otherwise
+</ResponseField>
+
+### Example
+
+```typescript
+import { isDescendant } from '@newtonschool/react-apple-tree';
+
+const parentNode = {
+  id: 'parent',
+  title: 'Parent',
+  children: [
+    { id: 'child', title: 'Child' },
+  ],
+};
+
+const childNode = parentNode.children[0];
+const unrelatedNode = { id: 'other', title: 'Other' };
+
+console.log(isDescendant(parentNode, childNode)); // true
+console.log(isDescendant(parentNode, unrelatedNode)); // false
+
+// Prevent circular references
+const handleMoveNode = (
+  node: TreeItem,
+  newParent: TreeItem
+): boolean => {
+  if (isDescendant(node, newParent)) {
+    alert('Cannot move a parent into its own child!');
+    return false;
+  }
+  
+  // Proceed with move
+  return true;
+};
+
+// Validate drop target
+const canDropNode = (draggedNode: TreeItem, dropTarget: TreeItem) => {
+  // Can't drop on self
+  if (draggedNode.id === dropTarget.id) {
+    return false;
+  }
+  
+  // Can't drop on own descendant
+  if (isDescendant(draggedNode, dropTarget)) {
+    return false;
+  }
+  
+  return true;
+};
+```
+
+<Warning>
+Always use `isDescendant` to prevent circular references when moving nodes in the tree.
+</Warning>
+
+---
+
+## getDepth
+
+Get the maximum depth of a node's descendants (0 for leaf nodes).
+
+<ParamField path="node" type="TreeItem<T>" required>
+  The node to calculate depth for
+</ParamField>
+
+<ParamField path="depth" type="number" default="0">
+  Starting depth (usually 0)
+</ParamField>
+
+<ResponseField name="return" type="number">
+  The maximum depth of the node's subtree
+</ResponseField>
+
+### Example
+
+```typescript
+import { getDepth } from '@newtonschool/react-apple-tree';
+
+const node = {
+  id: '1',
+  title: 'Root',
+  children: [
+    {
+      id: '2',
+      title: 'Child 1',
+      children: [
+        { id: '3', title: 'Grandchild' },
+      ],
+    },
+    { id: '4', title: 'Child 2' },
+  ],
+};
+
+const depth = getDepth(node);
+console.log(depth); // 2 (root -> child -> grandchild)
+
+// Calculate tree statistics
+const calculateTreeStats = (treeData: TreeItem[]) => {
+  let maxDepth = 0;
+  let totalDepth = 0;
+  let nodeCount = 0;
+
+  walk({
+    treeData,
+    getNodeKey: ({ node }) => node.id,
+    callback: ({ node }) => {
+      const nodeDepth = getDepth(node);
+      maxDepth = Math.max(maxDepth, nodeDepth);
+      totalDepth += nodeDepth;
+      nodeCount++;
+    },
+    ignoreCollapsed: false,
+  });
+
+  return {
+    maxDepth,
+    avgDepth: totalDepth / nodeCount,
+    nodeCount,
+  };
+};
+
+// Limit depth when adding nodes
+const handleAddNode = (parentNode: TreeItem) => {
+  const currentDepth = getDepth(parentNode);
+  const MAX_DEPTH = 5;
+
+  if (currentDepth >= MAX_DEPTH) {
+    alert(`Cannot add node: maximum depth of ${MAX_DEPTH} reached`);
+    return;
+  }
+
+  // Proceed with adding node
+  addNode(parentNode);
+};
+
+// Show depth in UI
+const generateNodeProps = ({ node, path }) => {
+  const depth = path.length;
+  const subtreeDepth = getDepth(node);
+  
+  return {
+    subtitle: node.children ? 
+      `Depth: ${depth}, Subtree: ${subtreeDepth}` : 
+      `Depth: ${depth}`,
+  };
+};
+```
+
+---
+
+## Complete Search Example
+
+```typescript
+import React, { useState } from 'react';
+import ReactAppleTree, {
+  find,
+  isDescendant,
+  getDepth,
+} from '@newtonschool/react-apple-tree';
+
+interface FileNode {
+  id: string;
+  title: string;
+  type: 'file' | 'folder';
+  children?: FileNode[];
+}
+
+const SearchableTree = () => {
+  const [treeData, setTreeData] = useState<FileNode[]>([/* ... */]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [focusIndex, setFocusIndex] = useState(0);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    
+    if (!query) {
+      setSearchResults([]);
+      setFocusIndex(0);
+      return;
+    }
+
+    const result = find({
+      treeData,
+      getNodeKey: ({ node }) => node.id,
+      searchQuery: query,
+      searchMethod: ({ node, searchQuery }) => {
+        return node.title.toLowerCase().includes(
+          searchQuery.toLowerCase()
+        );
+      },
+      searchFocusOffset: focusIndex,
+      expandFocusMatchPaths: true,
+    });
+
+    setSearchResults(result.matches);
+    setTreeData(result.treeData);
+  };
+
+  const handleNextMatch = () => {
+    const newIndex = (focusIndex + 1) % searchResults.length;
+    setFocusIndex(newIndex);
+    handleSearch(searchQuery);
+  };
+
+  const handlePrevMatch = () => {
+    const newIndex = focusIndex === 0 ? 
+      searchResults.length - 1 : 
+      focusIndex - 1;
+    setFocusIndex(newIndex);
+    handleSearch(searchQuery);
+  };
+
+  const handleCanDrop = ({ node, nextParent }) => {
+    if (!nextParent) return true;
+    
+    // Prevent circular references
+    if (isDescendant(node, nextParent)) {
+      return false;
+    }
+
+    // Check depth limit
+    const parentDepth = getDepth(nextParent);
+    const MAX_DEPTH = 5;
+    if (parentDepth >= MAX_DEPTH) {
+      return false;
+    }
+
+    return true;
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom: 10 }}>
+        <input
+          type="text"
+          placeholder="Search..."
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          style={{ marginRight: 10, padding: 5 }}
+        />
+        {searchResults.length > 0 && (
+          <span>
+            {focusIndex + 1} of {searchResults.length}
+            <button onClick={handlePrevMatch}>Prev</button>
+            <button onClick={handleNextMatch}>Next</button>
+          </span>
+        )}
+      </div>
+
+      <div style={{ height: 500 }}>
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+          searchQuery={searchQuery}
+          searchMethod={({ node, searchQuery }) => {
+            if (!searchQuery) return false;
+            return node.title.toLowerCase().includes(
+              searchQuery.toLowerCase()
+            );
+          }}
+          searchFocusOffset={focusIndex}
+          canDrop={handleCanDrop}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default SearchableTree;
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Tree Traversal" icon="route" href="/api/utils/tree-traversal">
+    Walk through and iterate over tree nodes
+  </Card>
+  <Card title="Search Props" icon="magnifying-glass" href="/api/props/search-props">
+    Learn about search props for the main component
+  </Card>
+</CardGroup>

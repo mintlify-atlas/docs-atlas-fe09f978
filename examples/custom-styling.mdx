@@ -1,0 +1,428 @@
+---
+title: Custom Styling
+description: Customize the appearance of your tree with styles, buttons, and configuration
+---
+
+## Using generateNodeProps
+
+The `generateNodeProps` function lets you add custom buttons, styles, and class names to individual nodes.
+
+```jsx
+import React, { useState } from 'react';
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+const StyledTree = () => {
+  const [treeData, setTreeData] = useState([
+    { id: 1, title: 'Node 1', type: 'folder' },
+    { id: 2, title: 'Node 2', type: 'file' },
+  ]);
+
+  return (
+    <div style={{ height: 400 }}>
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+        generateNodeProps={({ node, path, isSearchMatch, isSearchFocus }) => ({
+          // Add custom buttons
+          buttons: [
+            <button
+              key="edit"
+              onClick={() => console.log('Edit', node.title)}
+              style={{ marginRight: 4 }}
+            >
+              ✏️
+            </button>,
+            <button
+              key="delete"
+              onClick={() => console.log('Delete', node.title)}
+            >
+              🗑️
+            </button>,
+          ],
+          
+          // Add custom styles
+          style: {
+            backgroundColor: node.type === 'folder' ? '#f0f8ff' : '#fff',
+            borderLeft: isSearchMatch ? '3px solid #2196f3' : 'none',
+          },
+          
+          // Add custom class names
+          className: `node-${node.type} ${isSearchFocus ? 'search-focus' : ''}`,
+        })}
+      />
+    </div>
+  );
+};
+```
+
+<Tip>
+  The `generateNodeProps` function receives rich data about each node including `node`, `path`, `treeIndex`, `lowerSiblingCounts`, `isSearchMatch`, and `isSearchFocus`.
+</Tip>
+
+## Adding Custom Buttons
+
+Add interactive buttons to each node for actions like edit, delete, or custom operations:
+
+```jsx
+const handleEdit = (node) => {
+  const newTitle = prompt('Enter new title:', node.title);
+  if (newTitle) {
+    // Update the node using changeNodeAtPath helper
+    const updatedTree = changeNodeAtPath({
+      treeData,
+      path,
+      newNode: { ...node, title: newTitle },
+      getNodeKey: ({ node }) => node.id,
+    });
+    setTreeData(updatedTree);
+  }
+};
+
+const handleDelete = (node, path) => {
+  if (confirm(`Delete "${node.title}"?`)) {
+    const updatedTree = removeNodeAtPath({
+      treeData,
+      path,
+      getNodeKey: ({ node }) => node.id,
+    });
+    setTreeData(updatedTree);
+  }
+};
+
+const handleAddChild = (node, path) => {
+  const newNode = {
+    id: Date.now(),
+    title: 'New Child',
+  };
+  
+  const updatedTree = addNodeUnderParent({
+    treeData,
+    parentKey: node.id,
+    newNode,
+    getNodeKey: ({ node }) => node.id,
+    expandParent: true,
+  });
+  
+  setTreeData(updatedTree.treeData);
+};
+
+generateNodeProps={({ node, path }) => ({
+  buttons: [
+    <button key="add" onClick={() => handleAddChild(node, path)}>➕</button>,
+    <button key="edit" onClick={() => handleEdit(node, path)}>✏️</button>,
+    <button key="delete" onClick={() => handleDelete(node, path)}>🗑️</button>,
+  ],
+})}
+```
+
+<Note>
+  Import helper functions like `changeNodeAtPath`, `removeNodeAtPath`, and `addNodeUnderParent` from `@newtonschool/react-apple-tree`.
+</Note>
+
+## Custom Styling Options
+
+Apply different styles based on node properties:
+
+<CodeGroup>
+
+```jsx Style by Type
+generateNodeProps={({ node }) => ({
+  style: {
+    backgroundColor: {
+      folder: '#e3f2fd',
+      file: '#f5f5f5',
+      document: '#fff3e0',
+    }[node.type] || '#fff',
+    padding: '8px',
+    borderRadius: '4px',
+  },
+})}
+```
+
+```jsx Style by Depth
+generateNodeProps={({ node, path }) => ({
+  style: {
+    fontWeight: path.length === 1 ? 'bold' : 'normal',
+    fontSize: path.length === 1 ? '16px' : '14px',
+    opacity: path.length > 3 ? 0.7 : 1,
+  },
+})}
+```
+
+```jsx Style Search Matches
+generateNodeProps={({ node, isSearchMatch, isSearchFocus }) => ({
+  style: {
+    backgroundColor: isSearchFocus
+      ? '#ffd54f'
+      : isSearchMatch
+      ? '#fff9c4'
+      : '#fff',
+    border: isSearchFocus ? '2px solid #ffa000' : 'none',
+  },
+})}
+```
+
+</CodeGroup>
+
+## Adding Icons and Indicators
+
+Enrich nodes with visual indicators:
+
+```jsx
+generateNodeProps={({ node }) => {
+  const getIcon = (type) => {
+    const icons = {
+      folder: '📁',
+      file: '📄',
+      image: '🖼️',
+      code: '💻',
+    };
+    return icons[type] || '📋';
+  };
+
+  return {
+    title: () => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: '18px' }}>{getIcon(node.type)}</span>
+        <span>{node.title}</span>
+        {node.isNew && (
+          <span
+            style={{
+              fontSize: '10px',
+              backgroundColor: '#4caf50',
+              color: 'white',
+              padding: '2px 6px',
+              borderRadius: '10px',
+            }}
+          >
+            NEW
+          </span>
+        )}
+        {node.modified && <span style={{ color: '#ff9800' }}>●</span>}
+      </div>
+    ),
+  };
+}}
+```
+
+## Custom Class Names
+
+Apply CSS classes for more complex styling:
+
+```jsx
+// In your component
+generateNodeProps={({ node, path, isSearchMatch }) => ({
+  className: [
+    `node-type-${node.type}`,
+    `node-depth-${path.length}`,
+    isSearchMatch && 'node-search-match',
+    node.disabled && 'node-disabled',
+  ]
+    .filter(Boolean)
+    .join(' '),
+})}
+```
+
+```css
+/* In your CSS file */
+.node-type-folder {
+  font-weight: 600;
+}
+
+.node-depth-1 {
+  font-size: 16px;
+}
+
+.node-depth-2 {
+  font-size: 14px;
+}
+
+.node-search-match {
+  background-color: #fff9c4;
+}
+
+.node-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+```
+
+## Tree Layout Configuration
+
+Customize the tree's physical appearance:
+
+```jsx
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  
+  // Height of each row (default: 62)
+  rowHeight={50}
+  
+  // Width of the tree structure lines (default: 44)
+  scaffoldBlockPxWidth={36}
+  
+  // Container styles
+  style={{
+    height: '500px',
+    backgroundColor: '#fafafa',
+    border: '1px solid #e0e0e0',
+  }}
+  
+  // Inner scrollable container styles
+  innerStyle={{
+    padding: '16px',
+  }}
+  
+  // Custom class name
+  className="my-custom-tree"
+/>
+```
+
+<Tip>
+  Adjust `scaffoldBlockPxWidth` to control indentation and `rowHeight` to accommodate custom content.
+</Tip>
+
+## Dynamic Row Heights
+
+Set different heights for different nodes:
+
+```jsx
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  rowHeight={({ node, treeIndex }) => {
+    // Larger rows for parent nodes
+    if (node.children && node.children.length > 0) {
+      return 80;
+    }
+    // Smaller rows for leaf nodes
+    return 50;
+  }}
+/>
+```
+
+## Theme Configuration (Note)
+
+While full theme support is not implemented in this version, you can achieve consistent styling through a combination of:
+
+1. **Global CSS** - Style the default classes
+2. **`generateNodeProps`** - Apply styles to individual nodes
+3. **Container styles** - Use `style` and `innerStyle` props
+4. **Custom configuration** - Set `rowHeight` and `scaffoldBlockPxWidth`
+
+```jsx
+const treeConfig = {
+  rowHeight: 60,
+  scaffoldBlockPxWidth: 40,
+  style: {
+    backgroundColor: '#f5f5f5',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+  },
+  innerStyle: {
+    padding: '12px',
+  },
+};
+
+<ReactAppleTree
+  {...treeConfig}
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+/>
+```
+
+## Complete Styling Example
+
+Here's a fully styled tree with all customizations:
+
+```jsx
+import React, { useState } from 'react';
+import ReactAppleTree, { removeNodeAtPath } from '@newtonschool/react-apple-tree';
+
+const FullyStyledTree = () => {
+  const [treeData, setTreeData] = useState([
+    {
+      id: 1,
+      title: 'Projects',
+      type: 'folder',
+      expanded: true,
+      children: [
+        { id: 2, title: 'Website.html', type: 'code' },
+        { id: 3, title: 'Logo.png', type: 'image' },
+      ],
+    },
+  ]);
+
+  const handleDelete = (path) => {
+    setTreeData(
+      removeNodeAtPath({
+        treeData,
+        path,
+        getNodeKey: ({ node }) => node.id,
+      })
+    );
+  };
+
+  return (
+    <div style={{ height: 500 }}>
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+        rowHeight={56}
+        scaffoldBlockPxWidth={40}
+        style={{
+          backgroundColor: '#fafafa',
+          border: '1px solid #e0e0e0',
+          borderRadius: '8px',
+        }}
+        innerStyle={{ padding: '12px' }}
+        generateNodeProps={({ node, path, isSearchMatch }) => ({
+          buttons: [
+            <button
+              key="delete"
+              onClick={() => handleDelete(path)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '16px',
+              }}
+            >
+              🗑️
+            </button>,
+          ],
+          style: {
+            backgroundColor: isSearchMatch ? '#fff9c4' : '#fff',
+            borderRadius: '6px',
+            padding: '8px 12px',
+            marginBottom: '4px',
+            border: '1px solid #e0e0e0',
+          },
+          title: () => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: '20px' }}>
+                {node.type === 'folder' ? '📁' : node.type === 'image' ? '🖼️' : '💻'}
+              </span>
+              <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                {node.title}
+              </span>
+            </div>
+          ),
+        })}
+      />
+    </div>
+  );
+};
+```
+
+## Next Steps
+
+- [Search and Filter](/examples/search-and-filter) - Add search functionality
+- [Advanced Features](/examples/advanced-features) - Multiple trees and performance optimization
+- [API Reference](/api-reference/component-props) - Complete prop reference

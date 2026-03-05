@@ -1,0 +1,965 @@
+---
+title: Interfaces
+description: Interface definitions for props, data structures, and callbacks in React Apple Tree
+---
+
+## Component Props Interfaces
+
+### ReactAppleTreeProps\<T\>
+
+Main props interface for the ReactAppleTree component.
+
+```typescript
+interface ReactAppleTreeProps<T = {}> extends ThemeTreeProps<T> {
+  // Required props
+  treeData: Array<TreeItem<T>>;
+  onChange: OnChangeFn<T>;
+  getNodeKey: GetNodeKeyFn<T>;
+
+  // Optional props
+  generateNodeProps?: GenerateNodePropsFn<T>;
+  onMoveNode?: OnMoveNodeFn<T>;
+  onVisibilityToggle?: OnVisibilityToggleFn<T>;
+  onDragStateChanged?: OnDragStateChangedFn<T>;
+  maxDepth?: MaxDepth;
+  rowDirection?: RowDirection;
+  canDrag?: CanDragFn;
+  canDrop?: CanDropFn<T>;
+  canNodeHaveChildren?: CanNodeHaveChildrenFn<T> | boolean;
+  theme?: ThemeProps<T>;
+  searchMethod?: SearchMethodFn<T>;
+  searchQuery?: SearchQuery;
+  searchFocusOffset?: SearchFocusOffset;
+  onlyExpandSearchedNodes?: OnlyExpandSearchedNodes;
+  searchFinishCallback?: SearchFinishCallbackFn<T>;
+  dndType?: DNDType;
+  shouldCopyOnOutsideDrop?: ShouldCopyOnOutsideDropFn<T>;
+  className?: Classname;
+  isVirtualized?: IsVirtualized;
+  dragDropManager?: any;
+}
+```
+
+See the [ReactAppleTree component documentation](/api/components/react-apple-tree) for detailed prop descriptions and examples.
+
+---
+
+### ThemeProps\<T\>
+
+Theme configuration interface.
+
+```typescript
+interface ThemeProps<T = {}> extends ThemeTreeProps<T> {
+  treeNodeRenderer?: TreeRenderer<T>;
+}
+```
+
+---
+
+### ThemeTreeProps\<T\>
+
+Base theme properties.
+
+```typescript
+interface ThemeTreeProps<T = {}> {
+  style?: React.CSSProperties;
+  innerStyle?: React.CSSProperties;
+  reactVirtualizedListProps?: Partial<ListProps>;
+  scaffoldBlockPxWidth?: number; // default: 44
+  slideRegionSize?: number; // default: 100
+  rowHeight?: number; // default: 62
+  nodeContentRenderer?: NodeRenderer<T>;
+  placeholderRenderer?: PlaceholderRenderer<T>;
+}
+```
+
+**Properties:**
+- `style` - Styles for the outer tree container
+- `innerStyle` - Styles for the inner tree wrapper
+- `reactVirtualizedListProps` - Props passed to react-window's List component
+- `scaffoldBlockPxWidth` - Width of each indentation level in pixels
+- `slideRegionSize` - Size of the drag slide region in pixels
+- `rowHeight` - Height of each row in pixels
+- `nodeContentRenderer` - Custom node renderer component
+- `placeholderRenderer` - Custom drop placeholder renderer
+
+**Usage Example:**
+
+```typescript
+const theme: ThemeProps<CustomData> = {
+  style: {
+    height: '100vh',
+    backgroundColor: '#f5f5f5'
+  },
+  innerStyle: {
+    padding: '20px'
+  },
+  scaffoldBlockPxWidth: 50,
+  rowHeight: 80,
+  nodeContentRenderer: CustomNodeRenderer
+};
+
+<ReactAppleTree
+  theme={theme}
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ treeIndex }) => treeIndex}
+/>
+```
+
+---
+
+## Node Data Interfaces
+
+### TreeNode\<T\>
+
+Basic node wrapper.
+
+```typescript
+interface TreeNode<T = {}> {
+  node: TreeItem<T>;
+}
+```
+
+---
+
+### TreePath
+
+Path information.
+
+```typescript
+interface TreePath {
+  path: NumberOrStringArray;
+}
+```
+
+---
+
+### TreeIndex
+
+Index information.
+
+```typescript
+interface TreeIndex {
+  treeIndex: number;
+}
+```
+
+---
+
+### FullTree\<T\>
+
+Complete tree data.
+
+```typescript
+interface FullTree<T = {}> {
+  treeData: Array<TreeItem<T>>;
+}
+```
+
+---
+
+### NodeData\<T\>
+
+Combines node, path, and index information.
+
+```typescript
+interface NodeData<T = {}> extends TreeNode<T>, TreePath, TreeIndex {
+  node: TreeItem<T>;
+  path: NumberOrStringArray;
+  treeIndex: number;
+}
+```
+
+This is the most common interface passed to callbacks and utilities.
+
+**Usage Example:**
+
+```typescript
+import { walk } from 'react-apple-tree';
+
+walk({
+  treeData,
+  getNodeKey: ({ treeIndex }) => treeIndex,
+  callback: (nodeData: NodeData<CustomData>) => {
+    console.log('Node:', nodeData.node.title);
+    console.log('Path:', nodeData.path);
+    console.log('Index:', nodeData.treeIndex);
+  }
+});
+```
+
+---
+
+### ExtendedNodeData\<T\>
+
+Extended node information with parent and search data.
+
+```typescript
+interface ExtendedNodeData<T = {}> extends NodeData<T> {
+  parentNode?: TreeItem<T>;
+  lowerSiblingCounts: number[];
+  isSearchMatch: boolean;
+  isSearchFocus: boolean;
+}
+```
+
+**Properties:**
+- `parentNode` - The parent node (undefined for root nodes)
+- `lowerSiblingCounts` - Array tracking sibling counts at each depth
+- `isSearchMatch` - Whether this node matches the current search
+- `isSearchFocus` - Whether this node is the focused search result
+
+**Usage:**
+Passed to `generateNodeProps` and `canDrag` functions.
+
+---
+
+### FlatDataItem\<T\>
+
+Node data in flattened tree structure.
+
+```typescript
+interface FlatDataItem<T = {}> extends TreeNode<T>, TreePath {
+  lowerSiblingCounts: number[];
+  parentNode: TreeItem<T>;
+}
+```
+
+---
+
+### SearchData\<T\>
+
+Node data with search query.
+
+```typescript
+interface SearchData<T = {}> extends NodeData<T> {
+  searchQuery: any;
+}
+```
+
+Passed to the `searchMethod` function.
+
+---
+
+### ExtendedNodeProps
+
+Additional props returned by `generateNodeProps`.
+
+```typescript
+interface ExtendedNodeProps {
+  buttons?: Array<React.ReactNode>;
+  title?: () => React.ReactNode;
+  style?: React.CSSProperties;
+  className?: string;
+}
+```
+
+**Usage Example:**
+
+```typescript
+const generateNodeProps = ({ node, path }): ExtendedNodeProps => ({
+  buttons: [
+    <IconButton key="edit" onClick={() => handleEdit(node)}>
+      <EditIcon />
+    </IconButton>,
+    <IconButton key="delete" onClick={() => handleDelete(path)}>
+      <DeleteIcon />
+    </IconButton>
+  ],
+  title: () => (
+    <span style={{ fontWeight: node.important ? 'bold' : 'normal' }}>
+      {node.title}
+    </span>
+  ),
+  style: {
+    backgroundColor: node.highlighted ? '#fffacd' : 'transparent'
+  },
+  className: `node-${node.type}`
+});
+```
+
+---
+
+## Callback Data Interfaces
+
+### OnVisibilityToggleData\<T\>
+
+Data passed to `onVisibilityToggle` callback.
+
+```typescript
+interface OnVisibilityToggleData<T = {}> extends FullTree<T>, TreeNode<T> {
+  treeData: Array<TreeItem<T>>;
+  node: TreeItem<T>;
+  expanded: boolean;
+}
+```
+
+**Usage Example:**
+
+```typescript
+const handleVisibilityToggle = ({
+  node,
+  expanded,
+  treeData
+}: OnVisibilityToggleData<CustomData>) => {
+  console.log(`${node.title} is now ${expanded ? 'open' : 'closed'}`);
+  // Save expanded state to backend
+  saveExpandedState(node.id, expanded);
+};
+```
+
+---
+
+### OnDragStateChangedData\<T\>
+
+Data passed to `onDragStateChanged` callback.
+
+```typescript
+interface OnDragStateChangedData<T = {}> {
+  isDragging: boolean;
+  draggedNode: TreeItem<T>;
+}
+```
+
+**Usage Example:**
+
+```typescript
+const handleDragStateChanged = ({
+  isDragging,
+  draggedNode
+}: OnDragStateChangedData<CustomData>) => {
+  if (isDragging) {
+    console.log('Started dragging:', draggedNode.title);
+    setDragInProgress(true);
+  } else {
+    console.log('Stopped dragging');
+    setDragInProgress(false);
+  }
+};
+```
+
+---
+
+### OnDragPreviousAndNextLocation\<T\>
+
+Drag location information passed to `canDrop`.
+
+```typescript
+interface OnDragPreviousAndNextLocation<T = {}> {
+  prevTreeIndex: number;
+  prevPath: NumberOrStringArray;
+  nextTreeIndex: number;
+  nextPath: NumberOrStringArray;
+  prevParent: TreeItem<T> | null;
+  nextParent: TreeItem<T> | null;
+}
+```
+
+**Usage Example:**
+
+```typescript
+const canDrop = ({
+  node,
+  prevParent,
+  nextParent,
+  nextPath
+}: OnDragPreviousAndNextLocation<CustomData> & NodeData<CustomData>) => {
+  // Prevent moving root nodes
+  if (nextPath.length === 0) return false;
+  
+  // Prevent files from becoming parents
+  if (nextParent && nextParent.type === 'file') return false;
+  
+  // Prevent moving a folder into itself
+  if (nextParent?.id === node.id) return false;
+  
+  return true;
+};
+```
+
+---
+
+### OnMovePreviousAndNextLocation\<T\>
+
+Move location information passed to `onMoveNode`.
+
+```typescript
+interface OnMovePreviousAndNextLocation<T = {}> {
+  prevTreeIndex: number;
+  prevPath: NumberOrStringArray;
+  nextTreeIndex: number;
+  nextPath: NumberOrStringArray;
+  nextParentNode: TreeItem<T> | null;
+}
+```
+
+---
+
+### ShouldCopyData\<T\>
+
+Data passed to `shouldCopyOnOutsideDrop` function.
+
+```typescript
+interface ShouldCopyData<T = {}> {
+  node: TreeNode<T>;
+  prevPath: NumberOrStringArray;
+  prevTreeIndex: number;
+}
+```
+
+---
+
+## Renderer Props Interfaces
+
+### NodeRendererProps\<T\>
+
+Props passed to custom node renderer components.
+
+```typescript
+interface NodeRendererProps<T = {}> {
+  // Node data
+  node: TreeItem<T>;
+  path: NumberOrStringArray;
+  treeIndex: number;
+  parentNode?: TreeItem<T>;
+  lowerSiblingCounts: number[];
+  
+  // Search
+  isSearchMatch: boolean;
+  isSearchFocus: boolean;
+  
+  // Drag and drop
+  canDrag: boolean;
+  isDragging: boolean;
+  isOver: boolean;
+  canDrop?: boolean;
+  didDrop: boolean;
+  draggedNode?: TreeItem<T>;
+  connectDragPreview: ConnectDragPreview;
+  connectDragSource: ConnectDragSource;
+  startDrag: any;
+  endDrag: any;
+  
+  // Rendering
+  scaffoldBlockPxWidth: number;
+  toggleChildrenVisibility?(data: NodeData<T>): void;
+  buttons?: React.JSX.Element[];
+  className?: string;
+  style?: React.CSSProperties;
+  title?: ((data: NodeData<T>) => React.JSX.Element) | React.JSX.Element;
+  subtitle?: ((data: NodeData<T>) => React.JSX.Element) | React.JSX.Element;
+  icons?: React.JSX.Element[];
+  
+  // Visual indicators
+  swapDepth?: number;
+  swapFrom?: number;
+  swapLength?: number;
+  
+  // Internal
+  listIndex: number;
+  treeId: string;
+  rowDirection?: 'ltr' | 'rtl';
+}
+```
+
+**Usage Example:**
+
+```typescript
+const CustomNodeRenderer: NodeRenderer<CustomData> = ({
+  node,
+  path,
+  connectDragSource,
+  connectDragPreview,
+  isDragging,
+  isSearchMatch,
+  scaffoldBlockPxWidth,
+  toggleChildrenVisibility,
+  buttons
+}) => {
+  return connectDragPreview(
+    <div style={{ opacity: isDragging ? 0.5 : 1 }}>
+      {connectDragSource(
+        <div style={{ paddingLeft: path.length * scaffoldBlockPxWidth }}>
+          <button onClick={() => toggleChildrenVisibility({ node, path, treeIndex })}>
+            {node.expanded ? '▼' : '▶'}
+          </button>
+          <span style={{ background: isSearchMatch ? 'yellow' : 'transparent' }}>
+            {node.title}
+          </span>
+          <div>{buttons}</div>
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+---
+
+### PlaceholderRendererProps\<T\>
+
+Props passed to custom placeholder renderer components.
+
+```typescript
+interface PlaceholderRendererProps<T = {}> {
+  isOver: boolean;
+  canDrop: boolean;
+  draggedNode: TreeItem<T>;
+}
+```
+
+**Usage Example:**
+
+```typescript
+const CustomPlaceholder: PlaceholderRenderer<CustomData> = ({
+  isOver,
+  canDrop,
+  draggedNode
+}) => {
+  if (!isOver) return null;
+  
+  return (
+    <div
+      style={{
+        height: '4px',
+        backgroundColor: canDrop ? '#4CAF50' : '#f44336',
+        margin: '4px 0'
+      }}
+    >
+      {!canDrop && <span>Cannot drop here</span>}
+    </div>
+  );
+};
+```
+
+---
+
+### TreeRendererProps\<T\>
+
+Props passed to custom tree row renderer components.
+
+```typescript
+interface TreeRendererProps<T = {}> {
+  // Row data
+  node: TreeItem<T>;
+  path: NumberOrStringArray;
+  treeIndex: number;
+  lowerSiblingCounts: number[];
+  listIndex: number;
+  
+  // Rendering
+  treeId: string;
+  scaffoldBlockPxWidth: number;
+  rowDirection?: 'ltr' | 'rtl';
+  style?: React.CSSProperties;
+  children: React.JSX.Element[];
+  
+  // Visual indicators
+  swapFrom?: number;
+  swapDepth?: number;
+  swapLength?: number;
+  
+  // Drop target
+  connectDropTarget: ConnectDropTarget;
+  isOver: boolean;
+  canDrop?: boolean;
+  draggedNode?: TreeItem<T>;
+  
+  // Utilities
+  getPrevRow: () => FlatDataItem | null;
+}
+```
+
+---
+
+## Utility Function Interfaces
+
+### GetDescendantCountFnParams\<T\>
+
+Parameters for `getDescendantCount` utility.
+
+```typescript
+interface GetDescendantCountFnParams<T> {
+  node: TreeItem<T>;
+  ignoreCollapsed?: boolean;
+}
+```
+
+See [getDescendantCount](/api/utilities#getdescendantcount).
+
+---
+
+### GetVisibleNodeCountFnParams\<T\>
+
+Parameters for `getVisibleNodeCount` utility.
+
+```typescript
+interface GetVisibleNodeCountFnParams<T> {
+  treeData: Array<TreeItem<T>>;
+}
+```
+
+---
+
+### GetVisibleNodeInfoAtIndexFnParams\<T\>
+
+Parameters for `getVisibleNodeInfoAtIndex` utility.
+
+```typescript
+interface GetVisibleNodeInfoAtIndexFnParams<T> {
+  treeData: Array<TreeItem<T>>;
+  index: number;
+  getNodeKey: GetNodeKeyFn<T>;
+}
+```
+
+---
+
+### WalkFnParams\<T\>
+
+Parameters for `walk` utility.
+
+```typescript
+interface WalkFnParams<T> {
+  treeData: Array<TreeItem<T>>;
+  getNodeKey: GetNodeKeyFn<T>;
+  callback: (data: NodeData<T>) => void;
+  ignoreCollapsed?: boolean;
+}
+```
+
+**Usage Example:**
+
+```typescript
+import { walk } from 'react-apple-tree';
+
+walk({
+  treeData,
+  getNodeKey: ({ treeIndex }) => treeIndex,
+  callback: ({ node, path, treeIndex }) => {
+    console.log(`Node ${treeIndex}: ${node.title} at path ${path.join(' > ')}`);
+  },
+  ignoreCollapsed: false
+});
+```
+
+See [walk](/api/utilities#walk).
+
+---
+
+### MapFnParams\<T\>
+
+Parameters for `map` utility.
+
+```typescript
+interface MapFnParams<T> {
+  treeData: Array<TreeItem<T>>;
+  getNodeKey: GetNodeKeyFn<T>;
+  callback: (data: NodeData<T>) => void;
+  ignoreCollapsed?: boolean;
+}
+```
+
+See [map](/api/utilities#map).
+
+---
+
+### ToggleExpandedForAllFnParams\<T\>
+
+Parameters for `toggleExpandedForAll` utility.
+
+```typescript
+interface ToggleExpandedForAllFnParams<T> {
+  treeData: Array<TreeItem<T>>;
+  expanded?: boolean;
+}
+```
+
+---
+
+### ChangeNodeAtPathFnParams\<T\>
+
+Parameters for `changeNodeAtPath` utility.
+
+```typescript
+interface ChangeNodeAtPathFnParams<T> {
+  treeData: Array<TreeItem<T>>;
+  path: NumberOrStringArray;
+  newNode: TreeItem<T> | ((data: any) => TreeItem<T> | null) | null;
+  getNodeKey: GetNodeKeyFn<T>;
+  ignoreCollapsed?: boolean;
+}
+```
+
+**Usage Example:**
+
+```typescript
+import { changeNodeAtPath } from 'react-apple-tree';
+
+const updatedTree = changeNodeAtPath({
+  treeData,
+  path: [0, 2],
+  newNode: { ...existingNode, title: 'Updated Title' },
+  getNodeKey: ({ treeIndex }) => treeIndex
+});
+```
+
+See [changeNodeAtPath](/api/utilities#changenodeatpath).
+
+---
+
+### RemoveNodeAtPathFnParams\<T\>
+
+Parameters for `removeNodeAtPath` utility.
+
+```typescript
+interface RemoveNodeAtPathFnParams<T> {
+  treeData: Array<TreeItem<T>>;
+  path: NumberOrStringArray;
+  getNodeKey: GetNodeKeyFn<T>;
+  ignoreCollapsed?: boolean;
+}
+```
+
+---
+
+### RemoveNodeFnParams\<T\>
+
+Parameters for `removeNode` utility.
+
+```typescript
+interface RemoveNodeFnParams<T> {
+  treeData: Array<TreeItem<T>>;
+  path: NumberOrStringArray;
+  getNodeKey: GetNodeKeyFn<T>;
+  ignoreCollapsed?: boolean;
+}
+```
+
+Returns:
+
+```typescript
+type RemoveNodeFnReturnType<T> = {
+  treeData: Array<TreeItem<T>>;
+  node?: TreeItem<T> | null;
+  treeIndex?: number | null;
+};
+```
+
+---
+
+### GetNodeAtPathFnParams\<T\>
+
+Parameters for `getNodeAtPath` utility.
+
+```typescript
+interface GetNodeAtPathFnParams<T> {
+  treeData: Array<TreeItem<T>>;
+  path: NumberOrStringArray;
+  getNodeKey: GetNodeKeyFn<T>;
+  ignoreCollapsed?: boolean;
+}
+```
+
+---
+
+### AddNodeUnderParentFnParams\<T\>
+
+Parameters for `addNodeUnderParent` utility.
+
+```typescript
+interface AddNodeUnderParentFnParams<T> {
+  treeData: Array<TreeItem<T>>;
+  parentKey: NodeKey | null;
+  newNode: TreeItem<T>;
+  getNodeKey: GetNodeKeyFn<T>;
+  ignoreCollapsed?: boolean;
+  expandParent?: boolean;
+  addAsFirstChild?: boolean;
+}
+```
+
+Returns:
+
+```typescript
+type AddNodeUnderParentFnReturnType<T> = {
+  treeData: Array<TreeItem<T>>;
+  treeIndex: number | null;
+};
+```
+
+**Usage Example:**
+
+```typescript
+import { addNodeUnderParent } from 'react-apple-tree';
+
+const { treeData: newTree, treeIndex } = addNodeUnderParent({
+  treeData,
+  parentKey: 5,
+  newNode: {
+    title: 'New Child Node',
+    id: 10
+  },
+  getNodeKey: ({ node }) => node.id,
+  expandParent: true,
+  addAsFirstChild: false
+});
+
+setTreeData(newTree);
+console.log('New node added at index:', treeIndex);
+```
+
+See [addNodeUnderParent](/api/utilities#addnodeunderparent).
+
+---
+
+### InsertNodeFnParams\<T\>
+
+Parameters for `insertNode` utility.
+
+```typescript
+interface InsertNodeFnParams<T> {
+  treeData: Array<TreeItem<T>>;
+  depth: number;
+  minimumTreeIndex: number;
+  newNode: TreeItem<T>;
+  getNodeKey: GetNodeKeyFn<T>;
+  ignoreCollapsed?: boolean;
+  expandParent?: boolean;
+}
+```
+
+Returns:
+
+```typescript
+type InsertNodeFnReturnType<T> = {
+  treeData?: Array<TreeItem<T>>;
+  treeIndex?: number | null;
+  path?: NumberOrStringArray;
+  parentNode?: TreeItem<T> | null;
+};
+```
+
+---
+
+### GetFlatDataFromTreeFnParams\<T\>
+
+Parameters for `getFlatDataFromTree` utility.
+
+```typescript
+interface GetFlatDataFromTreeFnParams<T> {
+  treeData: Array<TreeItem<T>>;
+  getNodeKey: GetNodeKeyFn<T>;
+  ignoreCollapsed?: boolean;
+}
+```
+
+**Usage Example:**
+
+```typescript
+import { getFlatDataFromTree } from 'react-apple-tree';
+
+const flatData = getFlatDataFromTree({
+  treeData,
+  getNodeKey: ({ treeIndex }) => treeIndex,
+  ignoreCollapsed: false
+});
+
+console.log('Total visible nodes:', flatData.length);
+```
+
+See [getFlatDataFromTree](/api/utilities#getflatdatafromtree).
+
+---
+
+### GetTreeFromFlatDataFnParams\<T\>
+
+Parameters for `getTreeFromFlatData` utility.
+
+```typescript
+interface GetTreeFromFlatDataFnParams<T> {
+  flatData: Array<TreeItem<T>>;
+  getKey: GetFlatNodeKeyFn<T>;
+  getParentKey: GetFlatNodeKeyFn<T>;
+  rootKey: NodeKey;
+}
+```
+
+**Usage Example:**
+
+```typescript
+import { getTreeFromFlatData } from 'react-apple-tree';
+
+const flatData = [
+  { id: 1, title: 'Root', parentId: 0 },
+  { id: 2, title: 'Child 1', parentId: 1 },
+  { id: 3, title: 'Child 2', parentId: 1 },
+  { id: 4, title: 'Grandchild', parentId: 2 }
+];
+
+const treeData = getTreeFromFlatData({
+  flatData,
+  getKey: (node) => node.id,
+  getParentKey: (node) => node.parentId,
+  rootKey: 0
+});
+```
+
+See [getTreeFromFlatData](/api/utilities#gettreefromflatdata).
+
+---
+
+### FindFnParams\<T\>
+
+Parameters for `find` utility.
+
+```typescript
+interface FindFnParams<T> {
+  treeData: Array<TreeItem<T>>;
+  getNodeKey: GetNodeKeyFn<T>;
+  searchQuery: SearchQuery;
+  searchMethod: SearchMethodFn<T>;
+  searchFocusOffset?: SearchFocusOffset;
+  expandAllMatchPaths?: boolean;
+  expandFocusMatchPaths?: boolean;
+}
+```
+
+Returns:
+
+```typescript
+type FindFnReturnType<T> = {
+  matches: Array<NodeData<T>>;
+  treeData: Array<TreeItem<T>>;
+};
+```
+
+**Usage Example:**
+
+```typescript
+import { find } from 'react-apple-tree';
+
+const { matches, treeData: expandedTree } = find({
+  treeData,
+  getNodeKey: ({ treeIndex }) => treeIndex,
+  searchQuery: 'search term',
+  searchMethod: ({ node, searchQuery }) => {
+    return String(node.title).toLowerCase().includes(searchQuery.toLowerCase());
+  },
+  expandAllMatchPaths: true
+});
+
+console.log(`Found ${matches.length} matches`);
+setTreeData(expandedTree);
+```
+
+See [find](/api/utilities#find).
+
+---
+
+## See Also
+
+- [Type Aliases](/api/typescript/types) - Type alias definitions
+- [Component Props](/api/components/react-apple-tree) - Main component documentation
+- [Utility Functions](/api/utilities) - Utility function documentation

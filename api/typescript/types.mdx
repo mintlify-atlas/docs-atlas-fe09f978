@@ -1,0 +1,642 @@
+---
+title: Type Aliases
+description: Core type aliases and function signatures used throughout React Apple Tree
+---
+
+## Core Types
+
+### TreeItem\<T\>
+
+The fundamental building block of the tree structure. Represents a single node in the tree.
+
+```typescript
+type TreeItem<T = {}> = T & {
+  id?: NodeKey;
+  title?: React.ReactNode | undefined;
+  subtitle?: React.ReactNode | undefined;
+  expanded?: boolean | undefined;
+  children?: Array<TreeItem<T>> | undefined;
+};
+```
+
+**Properties:**
+- `id` - Unique identifier for the node
+- `title` - The main display content of the node
+- `subtitle` - Secondary display content
+- `expanded` - Whether the node's children are visible
+- `children` - Array of child nodes
+
+**Generic Parameter:**
+- `T` - Custom properties to extend the tree item with your own data
+
+**Usage Example:**
+
+```typescript
+interface CustomData {
+  author: string;
+  date: Date;
+  status: 'draft' | 'published';
+}
+
+const treeData: Array<TreeItem<CustomData>> = [
+  {
+    id: 1,
+    title: 'Document 1',
+    subtitle: 'Last edited today',
+    expanded: true,
+    author: 'John Doe',
+    date: new Date(),
+    status: 'published',
+    children: [
+      {
+        id: 2,
+        title: 'Section 1.1',
+        author: 'Jane Smith',
+        date: new Date(),
+        status: 'draft'
+      }
+    ]
+  }
+];
+```
+
+---
+
+### NodeKey
+
+The unique identifier type for tree nodes.
+
+```typescript
+type NodeKey = string | number;
+```
+
+Used throughout the library to uniquely identify nodes. Can be either a string or number.
+
+---
+
+### NumberOrStringArray
+
+Represents a path through the tree structure.
+
+```typescript
+type NumberOrStringArray = Array<string | number>;
+```
+
+**Usage:**
+Paths are used to locate nodes in the tree. Each element represents the index or key at that depth level.
+
+```typescript
+// Root node's first child's second child
+const path: NumberOrStringArray = [0, 1];
+```
+
+---
+
+### TreeMap
+
+A lookup map for quick node access by key.
+
+```typescript
+type TreeMap = Record<NodeKey, TreeItem>;
+```
+
+Internal data structure that maps node keys to their corresponding TreeItem objects for O(1) lookups.
+
+---
+
+## Function Types
+
+### OnChangeFn\<T\>
+
+Callback triggered when tree data changes.
+
+```typescript
+type OnChangeFn<T> = (treeData: Array<TreeItem<T>>) => void;
+```
+
+**Usage Example:**
+
+```typescript
+const handleChange: OnChangeFn<CustomData> = (treeData) => {
+  console.log('Tree updated:', treeData);
+  // Update your state
+  setTreeData(treeData);
+};
+
+<ReactAppleTree
+  treeData={treeData}
+  onChange={handleChange}
+  getNodeKey={({ treeIndex }) => treeIndex}
+/>
+```
+
+---
+
+### GetNodeKeyFn\<T\>
+
+Function to extract a unique key from a tree node.
+
+```typescript
+type GetNodeKeyFn<T = {}> = (data: TreeNode<T> & TreeIndex) => NodeKey;
+```
+
+**Parameters:**
+- `data.node` - The tree node
+- `data.treeIndex` - The node's index in the flattened tree
+
+**Usage Examples:**
+
+```typescript
+// Using node ID
+const getNodeKey: GetNodeKeyFn = ({ node }) => node.id!;
+
+// Using tree index
+const getNodeKey: GetNodeKeyFn = ({ treeIndex }) => treeIndex;
+
+// Using custom property
+const getNodeKey: GetNodeKeyFn<CustomData> = ({ node }) => node.author + node.date;
+```
+
+---
+
+### GetFlatNodeKeyFn\<T\>
+
+Function to extract a key from a node in flat data structures.
+
+```typescript
+type GetFlatNodeKeyFn<T = {}> = (node: TreeItem<T> | any) => NodeKey;
+```
+
+Used when converting between flat and tree data structures. See [getTreeFromFlatData](/api/utilities#gettreefromflatdata).
+
+---
+
+### GenerateNodePropsFn\<T\>
+
+Function to generate dynamic props for each node.
+
+```typescript
+type GenerateNodePropsFn<T> = (
+  data: ExtendedNodeData<T>,
+) => ExtendedNodeProps;
+```
+
+**Returns:**
+- `buttons` - Array of React nodes to display as action buttons
+- `title` - Function to render custom title
+- `style` - Custom CSS styles for the node
+- `className` - Custom CSS class name
+
+**Usage Example:**
+
+```typescript
+const generateNodeProps: GenerateNodePropsFn<CustomData> = ({
+  node,
+  path,
+  treeIndex,
+  isSearchMatch
+}) => ({
+  buttons: [
+    <button key="edit" onClick={() => editNode(node)}>
+      Edit
+    </button>,
+    <button key="delete" onClick={() => deleteNode(path)}>
+      Delete
+    </button>
+  ],
+  title: () => (
+    <div>
+      {node.title}
+      {node.status === 'draft' && <Badge>Draft</Badge>}
+    </div>
+  ),
+  style: {
+    backgroundColor: isSearchMatch ? '#fff3cd' : undefined,
+    fontWeight: node.status === 'published' ? 'bold' : 'normal'
+  },
+  className: `tree-node-${node.status}`
+});
+```
+
+---
+
+### OnMoveNodeFn\<T\>
+
+Callback when a node is moved via drag and drop.
+
+```typescript
+type OnMoveNodeFn<T> = (
+  data: NodeData<T> & FullTree<T> & OnMovePreviousAndNextLocation<T>,
+) => void;
+```
+
+**Parameters:**
+- `node` - The moved node
+- `treeIndex` - New index in the tree
+- `path` - New path in the tree
+- `treeData` - Updated tree data
+- `prevTreeIndex` - Previous index
+- `prevPath` - Previous path
+- `nextTreeIndex` - New index (same as treeIndex)
+- `nextPath` - New path (same as path)
+- `nextParentNode` - New parent node or null if root
+
+**Usage Example:**
+
+```typescript
+const handleMoveNode: OnMoveNodeFn<CustomData> = ({
+  node,
+  treeData,
+  path,
+  nextParentNode
+}) => {
+  console.log(`Moved "${node.title}" to path:`, path);
+  if (nextParentNode) {
+    console.log(`New parent: "${nextParentNode.title}"`);
+  }
+  // Update your state with the new treeData
+  setTreeData(treeData);
+};
+```
+
+---
+
+### OnVisibilityToggleFn\<T\>
+
+Callback when a node is expanded or collapsed.
+
+```typescript
+type OnVisibilityToggleFn<T> = (data: OnVisibilityToggleData<T>) => void;
+```
+
+**Parameters:**
+- `treeData` - Updated tree data
+- `node` - The toggled node
+- `expanded` - New expanded state
+
+**Usage Example:**
+
+```typescript
+const handleVisibilityToggle: OnVisibilityToggleFn = ({ node, expanded }) => {
+  console.log(`Node "${node.title}" is now ${expanded ? 'expanded' : 'collapsed'}`);
+};
+```
+
+---
+
+### OnDragStateChangedFn\<T\>
+
+Callback when drag state changes.
+
+```typescript
+type OnDragStateChangedFn<T> = (data: OnDragStateChangedData<T>) => void;
+```
+
+**Parameters:**
+- `isDragging` - Whether any node is being dragged
+- `draggedNode` - The node being dragged
+
+---
+
+### CanDragFn
+
+Function or boolean to determine if a node can be dragged.
+
+```typescript
+type CanDragFn =
+  | ((data: ExtendedNodeData) => boolean)
+  | boolean
+  | undefined;
+```
+
+**Usage Examples:**
+
+```typescript
+// Allow all nodes to be dragged
+<ReactAppleTree canDrag={true} />
+
+// Prevent all dragging
+<ReactAppleTree canDrag={false} />
+
+// Conditional dragging
+const canDrag = ({ node }: ExtendedNodeData<CustomData>) => {
+  return node.status !== 'locked';
+};
+
+<ReactAppleTree canDrag={canDrag} />
+```
+
+---
+
+### CanDropFn\<T\>
+
+Function to determine if a node can be dropped at a location.
+
+```typescript
+type CanDropFn<T> = (
+  data: OnDragPreviousAndNextLocation<T> & NodeData<T>,
+) => boolean;
+```
+
+**Parameters:**
+- `node` - The node being dropped
+- `prevParent` - Previous parent node
+- `nextParent` - Potential new parent node
+- `prevPath` - Previous path
+- `nextPath` - Potential new path
+
+**Usage Example:**
+
+```typescript
+const canDrop: CanDropFn<CustomData> = ({ node, nextParent }) => {
+  // Don't allow files to be dropped into other files
+  if (nextParent && nextParent.type === 'file') {
+    return false;
+  }
+  // Don't allow folders to be dropped into themselves
+  if (nextParent?.id === node.id) {
+    return false;
+  }
+  return true;
+};
+```
+
+---
+
+### CanNodeHaveChildrenFn\<T\>
+
+Function to determine if a node can have children.
+
+```typescript
+type CanNodeHaveChildrenFn<T> = (node: TreeItem<T>) => boolean;
+```
+
+**Usage Example:**
+
+```typescript
+const canNodeHaveChildren = (node: TreeItem<CustomData>) => {
+  return node.type === 'folder';
+};
+```
+
+---
+
+### SearchMethodFn\<T\>
+
+Function to determine if a node matches a search query.
+
+```typescript
+type SearchMethodFn<T> = (data: SearchData<T>) => boolean;
+```
+
+**Parameters:**
+- `node` - The node to test
+- `path` - Node's path
+- `treeIndex` - Node's index
+- `searchQuery` - The search query
+
+**Usage Example:**
+
+```typescript
+const searchMethod: SearchMethodFn<CustomData> = ({ node, searchQuery }) => {
+  if (typeof searchQuery !== 'string') return false;
+  
+  const query = searchQuery.toLowerCase();
+  const title = String(node.title || '').toLowerCase();
+  const author = node.author?.toLowerCase() || '';
+  
+  return title.includes(query) || author.includes(query);
+};
+
+<ReactAppleTree
+  searchMethod={searchMethod}
+  searchQuery="john"
+/>
+```
+
+---
+
+### SearchFinishCallbackFn\<T\>
+
+Callback when search completes.
+
+```typescript
+type SearchFinishCallbackFn<T> = (matches: Array<NodeData<T>>) => void;
+```
+
+**Usage Example:**
+
+```typescript
+const [matchCount, setMatchCount] = useState(0);
+
+const searchFinishCallback: SearchFinishCallbackFn = (matches) => {
+  setMatchCount(matches.length);
+  console.log('Found matches:', matches);
+};
+```
+
+---
+
+### ShouldCopyOnOutsideDropFn\<T\>
+
+Function or boolean to determine if dragging outside should copy instead of move.
+
+```typescript
+type ShouldCopyOnOutsideDropFn<T> =
+  | boolean
+  | ((data: ShouldCopyData<T>) => boolean)
+  | undefined;
+```
+
+**Usage Examples:**
+
+```typescript
+// Always copy on outside drop
+<ReactAppleTree shouldCopyOnOutsideDrop={true} />
+
+// Never copy (always move)
+<ReactAppleTree shouldCopyOnOutsideDrop={false} />
+
+// Conditional copying
+const shouldCopy = ({ node }: ShouldCopyData<CustomData>) => {
+  return node.allowCopy === true;
+};
+
+<ReactAppleTree shouldCopyOnOutsideDrop={shouldCopy} />
+```
+
+---
+
+## Configuration Types
+
+### MaxDepth
+
+Maximum depth of the tree.
+
+```typescript
+type MaxDepth = number | undefined;
+```
+
+---
+
+### RowDirection
+
+Direction of text rendering.
+
+```typescript
+type RowDirection = 'ltr' | 'rtl' | undefined;
+```
+
+---
+
+### SearchQuery
+
+Search query value.
+
+```typescript
+type SearchQuery = string | any | undefined;
+```
+
+---
+
+### SearchFocusOffset
+
+Index of the search result to focus on.
+
+```typescript
+type SearchFocusOffset = number | undefined;
+```
+
+---
+
+### OnlyExpandSearchedNodes
+
+Whether only searched nodes should be expanded.
+
+```typescript
+type OnlyExpandSearchedNodes = boolean | undefined;
+```
+
+---
+
+### DNDType
+
+Custom drag and drop type identifier.
+
+```typescript
+type DNDType = string | undefined;
+```
+
+Default: `"REACT_APPLE_TREE_ITEM"`
+
+---
+
+### Classname
+
+CSS class name.
+
+```typescript
+type Classname = string | undefined;
+```
+
+---
+
+### IsVirtualized
+
+Whether the tree uses virtualization.
+
+```typescript
+type IsVirtualized = boolean | undefined;
+```
+
+Default: `true`
+
+---
+
+## Component Function Types
+
+### NodeRenderer\<T\>
+
+Component type for rendering individual nodes.
+
+```typescript
+type NodeRenderer<T = {}> = React.ComponentType<NodeRendererProps<T>>;
+```
+
+See [NodeRendererProps](/api/typescript/interfaces#noderendererprops) for details.
+
+---
+
+### PlaceholderRenderer\<T\>
+
+Component type for rendering drop placeholders.
+
+```typescript
+type PlaceholderRenderer<T = {}> = React.ComponentType<
+  PlaceholderRendererProps<T>
+>;
+```
+
+See [PlaceholderRendererProps](/api/typescript/interfaces#placeholderrendererprops) for details.
+
+---
+
+### TreeRenderer\<T\>
+
+Component type for rendering tree rows.
+
+```typescript
+type TreeRenderer<T = {}> = React.ComponentType<TreeRendererProps<T>>;
+```
+
+See [TreeRendererProps](/api/typescript/interfaces#treerendererprops) for details.
+
+---
+
+## Internal Types
+
+### FlatTreeItem
+
+Internal representation of a node in the flattened tree.
+
+```typescript
+type FlatTreeItem = {
+  mapId: NodeKey;
+  path: NumberOrStringArray;
+  parentKey: NodeKey | null;
+  draggingNode?: boolean;
+  dropSuccessNode?: boolean;
+  dropErrorNode?: boolean;
+  forcedDepth?: number;
+};
+```
+
+Used internally for virtualization and drag-and-drop operations.
+
+---
+
+### SearchedNodeMap
+
+Map of node keys to their search match status.
+
+```typescript
+type SearchedNodeMap = Record<NodeKey, boolean>;
+```
+
+---
+
+### ContextProviderProps
+
+Props for internal context providers.
+
+```typescript
+type ContextProviderProps = { children: React.JSX.Element };
+```
+
+---
+
+## See Also
+
+- [Interfaces](/api/typescript/interfaces) - Interface definitions
+- [Component Props](/api/components/react-apple-tree) - Main component props
+- [Utility Functions](/api/utilities) - Utility function types

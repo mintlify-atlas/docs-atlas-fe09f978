@@ -1,0 +1,232 @@
+---
+title: Basic Usage
+description: Get started with React Apple Tree with simple examples
+---
+
+## Simple Tree
+
+The most basic usage requires three props: `treeData`, `onChange`, and `getNodeKey`.
+
+```jsx
+import React, { useState } from 'react';
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+const BasicTree = () => {
+  const [treeData, setTreeData] = useState([
+    {
+      id: 1,
+      title: 'Node 1',
+      children: [{ id: 2, title: 'Node 1.1' }],
+    },
+    {
+      id: 3,
+      title: 'Node 2',
+      children: [
+        { id: 4, title: 'Node 2.1' },
+        { id: 5, title: 'Node 2.2', children: [{ id: 6, title: 'Node 2.2.1' }] },
+      ],
+    },
+    {
+      id: 7,
+      title: 'Node 3',
+    },
+  ]);
+
+  return (
+    <div style={{ height: 400 }}>
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={(newTreeData) => setTreeData(newTreeData)}
+        getNodeKey={({ node }) => node.id}
+      />
+    </div>
+  );
+};
+```
+
+<Note>
+  Always wrap your tree in a container with a defined height. The tree uses virtualization and requires a height to render properly.
+</Note>
+
+## Tree Data Structure
+
+Each node in the tree can have these properties:
+
+- **`title`** - The primary label (string or React element)
+- **`subtitle`** - Secondary label (optional)
+- **`expanded`** - Whether children are visible (defaults to `false`)
+- **`children`** - Array of child nodes (optional)
+- **Custom properties** - Add any additional data your app needs
+
+```jsx
+const treeData = [
+  {
+    id: 1,
+    title: 'Parent Node',
+    subtitle: 'This is a subtitle',
+    expanded: true,
+    customData: { type: 'folder', icon: '📁' },
+    children: [
+      {
+        id: 2,
+        title: 'Child Node',
+        customData: { type: 'file', icon: '📄' },
+      },
+    ],
+  },
+];
+```
+
+## Handling Tree Changes
+
+The `onChange` callback is called whenever the tree structure changes through drag-and-drop operations.
+
+```jsx
+const [treeData, setTreeData] = useState(initialData);
+
+const handleChange = (newTreeData) => {
+  console.log('Tree updated:', newTreeData);
+  setTreeData(newTreeData);
+  
+  // Optional: Save to backend
+  // saveToAPI(newTreeData);
+};
+
+return (
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={handleChange}
+    getNodeKey={({ node }) => node.id}
+  />
+);
+```
+
+<Tip>
+  Use the `onChange` callback to sync tree changes with your backend or application state.
+</Tip>
+
+## Using getNodeKey
+
+The `getNodeKey` function provides a unique identifier for each node. This is crucial for tracking nodes during drag-and-drop operations.
+
+<CodeGroup>
+
+```jsx Using ID
+getNodeKey={({ node }) => node.id}
+```
+
+```jsx Using Title
+getNodeKey={({ node }) => node.title}
+```
+
+```jsx Using Index
+getNodeKey={({ node, treeIndex }) => treeIndex}
+```
+
+</CodeGroup>
+
+<Note>
+  For best results, use a stable, unique identifier like `node.id` rather than `treeIndex`, which can change when nodes are moved.
+</Note>
+
+## Custom Node Content
+
+You can render custom content in your nodes using React elements for `title` and `subtitle`:
+
+```jsx
+const treeData = [
+  {
+    id: 1,
+    title: (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span>📁</span>
+        <strong>Documents</strong>
+      </div>
+    ),
+    subtitle: <span style={{ color: '#666' }}>3 items</span>,
+    children: [
+      {
+        id: 2,
+        title: (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>📄</span>
+            <span>Report.pdf</span>
+          </div>
+        ),
+      },
+    ],
+  },
+];
+```
+
+## Controlling Expansion
+
+Control which nodes are expanded using the `expanded` property:
+
+```jsx
+const [treeData, setTreeData] = useState([
+  {
+    id: 1,
+    title: 'Expanded Parent',
+    expanded: true, // Children will be visible
+    children: [
+      { id: 2, title: 'Visible Child' },
+    ],
+  },
+  {
+    id: 3,
+    title: 'Collapsed Parent',
+    expanded: false, // Children will be hidden
+    children: [
+      { id: 4, title: 'Hidden Child' },
+    ],
+  },
+]);
+```
+
+You can programmatically expand/collapse nodes using the helper function:
+
+```jsx
+import ReactAppleTree, { toggleExpandedForAll } from '@newtonschool/react-apple-tree';
+
+const expandAll = () => {
+  setTreeData(toggleExpandedForAll({ treeData, expanded: true }));
+};
+
+const collapseAll = () => {
+  setTreeData(toggleExpandedForAll({ treeData, expanded: false }));
+};
+```
+
+## Tracking Node Events
+
+Listen to node expansion and drag events:
+
+```jsx
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  onVisibilityToggle={({ node, expanded, treeData }) => {
+    console.log(`Node "${node.title}" is now ${expanded ? 'expanded' : 'collapsed'}`);
+  }}
+  onMoveNode={({ node, prevPath, nextPath, treeData }) => {
+    console.log(`Node "${node.title}" moved from`, prevPath, 'to', nextPath);
+  }}
+  onDragStateChanged={({ isDragging, draggedNode }) => {
+    if (isDragging) {
+      console.log(`Started dragging "${draggedNode.title}"`);
+    } else {
+      console.log('Drag ended');
+    }
+  }}
+/>
+```
+
+## Next Steps
+
+Now that you understand the basics, explore:
+
+- [Custom Styling](/examples/custom-styling) - Add buttons, styles, and themes
+- [Search and Filter](/examples/search-and-filter) - Implement search functionality
+- [Advanced Features](/examples/advanced-features) - Multiple trees, RTL, and performance optimization

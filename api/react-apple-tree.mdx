@@ -1,0 +1,177 @@
+---
+title: ReactAppleTree
+description: The default React Apple Tree component with built-in DndProvider
+---
+
+## Overview
+
+`ReactAppleTree` is the default export component that provides a complete drag-and-drop tree interface with a built-in `DndProvider` from `react-dnd`. This is the recommended component for most use cases.
+
+## Import
+
+```tsx
+import ReactAppleTree from 'react-apple-tree';
+```
+
+## TypeScript Signature
+
+```tsx
+function ReactAppleTree<T>(
+  props: React.PropsWithChildren<ReactAppleTreeProps<T>>
+): React.ReactElement
+```
+
+The component is generic and accepts a type parameter `T` for custom data attached to tree nodes.
+
+## When to Use
+
+Use `ReactAppleTree` when:
+
+- You have a single tree component in your application
+- You want the simplest setup with drag-and-drop built-in
+- You don't need to customize the DnD context or backend
+- You're not sharing drag-and-drop functionality with other components
+
+This component wraps your tree with a `DndProvider` using the HTML5 backend, so you don't need to set up drag-and-drop yourself.
+
+## Basic Usage
+
+```tsx
+import ReactAppleTree from 'react-apple-tree';
+import { useState } from 'react';
+import type { TreeItem } from 'react-apple-tree';
+
+interface MyCustomData {
+  category: string;
+  metadata?: Record<string, any>;
+}
+
+function App() {
+  const [treeData, setTreeData] = useState<TreeItem<MyCustomData>[]>([
+    {
+      id: 1,
+      title: 'Parent Node',
+      expanded: true,
+      category: 'root',
+      children: [
+        {
+          id: 2,
+          title: 'Child Node',
+          category: 'leaf',
+        },
+      ],
+    },
+  ]);
+
+  return (
+    <ReactAppleTree
+      treeData={treeData}
+      onChange={setTreeData}
+      getNodeKey={({ node, treeIndex }) => node.id ?? treeIndex}
+    />
+  );
+}
+```
+
+## Advanced Example
+
+```tsx
+import ReactAppleTree from 'react-apple-tree';
+import { useState } from 'react';
+import type { TreeItem, ExtendedNodeData } from 'react-apple-tree';
+
+function AdvancedTreeExample() {
+  const [treeData, setTreeData] = useState<TreeItem[]>([...]);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleMoveNode = (data) => {
+    console.log('Node moved:', data.node.title);
+    console.log('From path:', data.prevPath);
+    console.log('To path:', data.nextPath);
+  };
+
+  const generateNodeProps = (data: ExtendedNodeData) => ({
+    buttons: [
+      <button
+        key="delete"
+        onClick={() => handleDelete(data.path)}
+      >
+        Delete
+      </button>,
+    ],
+    className: data.isSearchMatch ? 'highlight' : '',
+  });
+
+  return (
+    <div>
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Search tree..."
+      />
+      
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+        generateNodeProps={generateNodeProps}
+        onMoveNode={handleMoveNode}
+        searchQuery={searchQuery}
+        searchFocusOffset={0}
+        maxDepth={5}
+        canDrag={({ node }) => node.draggable !== false}
+        rowHeight={62}
+        scaffoldBlockPxWidth={44}
+      />
+    </div>
+  );
+}
+```
+
+## Props
+
+The `ReactAppleTree` component accepts all props from the [`ReactAppleTreeProps`](/api/props/react-apple-tree-props) interface. Key props include:
+
+### Required Props
+
+- **`treeData`** - The tree data structure (array of TreeItem objects)
+- **`onChange`** - Callback when tree data changes
+- **`getNodeKey`** - Function to get unique key for each node
+
+### Common Optional Props
+
+- **`generateNodeProps`** - Add custom props (buttons, styles) to nodes
+- **`onMoveNode`** - Callback when a node is moved
+- **`onVisibilityToggle`** - Callback when a node is expanded/collapsed
+- **`maxDepth`** - Maximum tree depth
+- **`canDrag`** - Control which nodes can be dragged
+- **`canDrop`** - Control where nodes can be dropped
+- **`searchQuery`** - Search/filter nodes
+- **`rowHeight`** - Height of each row (default: 62)
+- **`scaffoldBlockPxWidth`** - Indentation width (default: 44)
+
+For a complete list of all available props, see the [ReactAppleTreeProps API reference](/api/props/react-apple-tree-props).
+
+## Implementation Details
+
+Internally, `ReactAppleTree` wraps [`ReactAppleTreeWithoutDndContext`](/api/react-apple-tree-without-dnd) with a `DndProvider`:
+
+```tsx
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
+function ReactAppleTree<T>(props: React.PropsWithChildren<ReactAppleTreeProps<T>>) {
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <ReactAppleTreeWithoutDndContext {...props} />
+    </DndProvider>
+  );
+}
+```
+
+## Related Components
+
+- [`ReactAppleTreeWithoutDndContext`](/api/react-apple-tree-without-dnd) - Use when you need custom DnD setup
+- [ReactAppleTreeProps](/api/props/react-apple-tree-props) - Complete prop reference
+- [TreeItem](/api/types/tree-item) - Tree node structure

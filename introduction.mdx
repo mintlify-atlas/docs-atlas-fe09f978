@@ -1,0 +1,123 @@
+---
+title: Introduction
+description: A React component library for drag-and-drop sortable hierarchical trees
+---
+
+<img src="https://d3dyfaf3iutrxo.cloudfront.net/general/upload/5591c3e649a44a7dbabdfd6ddda7d2f2.gif" alt="React Apple Tree Demo" />
+
+## What is React Apple Tree?
+
+React Apple Tree is a modern React component library for building drag-and-drop sortable hierarchical tree interfaces. It provides an intuitive way to display and manipulate nested data structures with built-in support for virtualization, search, and extensive customization options.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Drag and Drop" icon="hand">
+    Intuitive drag-and-drop functionality powered by react-dnd with HTML5 backend support
+  </Card>
+  
+  <Card title="Virtualization" icon="rocket">
+    High performance rendering of large trees using react-window for optimal performance
+  </Card>
+  
+  <Card title="TypeScript Support" icon="code">
+    Fully typed with TypeScript for excellent developer experience and type safety
+  </Card>
+  
+  <Card title="Search & Filter" icon="magnifying-glass">
+    Built-in search functionality with customizable search methods and highlighting
+  </Card>
+  
+  <Card title="Customizable" icon="palette">
+    Extensive customization options through props, custom renderers, and styled-components
+  </Card>
+  
+  <Card title="Helper Functions" icon="wrench">
+    Rich set of utility functions for tree manipulation, data conversion, and traversal
+  </Card>
+</CardGroup>
+
+## Why React Apple Tree?
+
+React Apple Tree is an updated and maintained version of the popular `react-sortable-tree` library. It brings modern React practices, improved performance, and active maintenance to the table.
+
+### Improvements over react-sortable-tree:
+
+- **Modern React**: Built with React 18+ and modern hooks
+- **Better Performance**: Optimized rendering with react-window
+- **Active Maintenance**: Regular updates and bug fixes
+- **Improved TypeScript**: Comprehensive type definitions
+- **Enhanced DX**: Better documentation and examples
+
+## Use Cases
+
+React Apple Tree is perfect for:
+
+- File/folder navigation systems
+- Organization hierarchies
+- Category management interfaces
+- Menu/navigation builders
+- Decision trees and flowcharts
+- Any nested data visualization
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/Newton-School/react-apple-tree">
+    View source code, report issues, and contribute
+  </Card>
+  
+  <Card title="npm Package" icon="npm" href="https://www.npmjs.com/package/@newtonschool/react-apple-tree">
+    Install from npm registry
+  </Card>
+  
+  <Card title="Storybook" icon="book" href="https://react-apple-tree.newtonschool.co/">
+    Explore interactive examples and demos
+  </Card>
+  
+  <Card title="TypeScript Types" icon="code">
+    Full TypeScript support with exported types
+  </Card>
+</CardGroup>
+
+## Quick Example
+
+Here's a minimal example to get you started:
+
+```jsx
+import React, { useState } from 'react';
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+function App() {
+  const [treeData, setTreeData] = useState([
+    { title: 'Node 1', children: [{ title: 'Child 1' }] },
+    { title: 'Node 2' }
+  ]);
+
+  return (
+    <div style={{ height: 400 }}>
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.title}
+      />
+    </div>
+  );
+}
+```
+
+<Note>
+  React Apple Tree requires a fixed height on its container to render properly.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Install React Apple Tree and its dependencies
+  </Card>
+  
+  <Card title="Quick Start" icon="play" href="/quickstart">
+    Build your first tree in minutes
+  </Card>
+</CardGroup>

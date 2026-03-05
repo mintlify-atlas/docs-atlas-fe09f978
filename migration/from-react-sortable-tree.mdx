@@ -1,0 +1,311 @@
+---
+title: 'Migrating from react-sortable-tree'
+description: 'Step-by-step guide to migrate from react-sortable-tree to React Apple Tree'
+---
+
+## Overview
+
+React Apple Tree is an updated version of the popular `react-sortable-tree` library, modernized to support React 18+, updated dependencies, and improved TypeScript types. This guide will help you migrate your existing `react-sortable-tree` implementation to React Apple Tree.
+
+## Why Migrate?
+
+The original `react-sortable-tree` library is no longer actively maintained. React Apple Tree provides:
+
+- **React 18+ Support**: Full compatibility with the latest React features
+- **Updated Dependencies**: Modern versions of react-dnd (v16) and react-window
+- **TypeScript Improvements**: Better type definitions and TypeScript support
+- **Active Maintenance**: Regular updates and bug fixes
+- **Same Core API**: Minimal breaking changes to ease migration
+
+## What's Different
+
+### Updated Dependencies
+
+React Apple Tree uses modern versions of its core dependencies:
+
+- `react-dnd` v16+ (previously used older versions)
+- `react-window` instead of `react-virtualized` for better performance
+- React 18.3+ and React DOM 18.3+ as peer dependencies
+- `styled-components` v6+ as a peer dependency
+
+### Features Not Yet Implemented
+
+Some features from `react-sortable-tree` are marked as not yet implemented:
+
+- **Custom Themes**: The `theme` prop is not fully implemented
+- **Custom Node Content Renderer**: The `nodeContentRenderer` prop
+- **Custom Placeholder Renderer**: The `placeholderRenderer` prop
+
+<Warning>
+If your application relies on these features, you may need to wait for future releases or implement custom solutions using `generateNodeProps` and CSS styling.
+</Warning>
+
+### API Changes
+
+The `rowHeight` prop documentation references "react-sortable-tree" in the description but functions the same way in React Apple Tree.
+
+## Migration Steps
+
+<Steps>
+  <Step title="Update Package Dependencies">
+    Remove the old `react-sortable-tree` package and install React Apple Tree:
+
+    ```bash
+    # Using npm
+    npm uninstall react-sortable-tree
+    npm install @newtonschool/react-apple-tree
+
+    # Using yarn
+    yarn remove react-sortable-tree
+    yarn add @newtonschool/react-apple-tree
+    ```
+
+    Ensure your project meets the peer dependency requirements:
+    - React ^18.3.1
+    - React DOM ^18.3.1
+    - styled-components ^6.1.13
+  </Step>
+
+  <Step title="Update Import Statements">
+    Replace all imports from `react-sortable-tree` with the new package name:
+
+    **Before:**
+    ```jsx
+    import SortableTree from 'react-sortable-tree';
+    import 'react-sortable-tree/style.css';
+    ```
+
+    **After:**
+    ```jsx
+    import ReactAppleTree from '@newtonschool/react-apple-tree';
+    // No CSS import needed - styles are included
+    ```
+
+    <Note>
+    React Apple Tree uses styled-components internally, so you don't need to import a separate CSS file.
+    </Note>
+  </Step>
+
+  <Step title="Update Component Usage">
+    Rename the component in your JSX:
+
+    **Before:**
+    ```jsx
+    <SortableTree
+      treeData={treeData}
+      onChange={setTreeData}
+    />
+    ```
+
+    **After:**
+    ```jsx
+    <ReactAppleTree
+      treeData={treeData}
+      onChange={setTreeData}
+    />
+    ```
+  </Step>
+
+  <Step title="Update Helper Function Imports">
+    Helper functions are exported the same way:
+
+    **Before:**
+    ```jsx
+    import {
+      addNodeUnderParent,
+      removeNodeAtPath,
+      changeNodeAtPath,
+    } from 'react-sortable-tree';
+    ```
+
+    **After:**
+    ```jsx
+    import {
+      addNodeUnderParent,
+      removeNodeAtPath,
+      changeNodeAtPath,
+    } from '@newtonschool/react-apple-tree';
+    ```
+
+    All helper functions remain available and work identically.
+  </Step>
+
+  <Step title="Handle Custom Themes (If Applicable)">
+    If you were using the `theme` prop with a custom theme package:
+
+    **Temporary workaround:**
+    Use `generateNodeProps` to add custom styling and `className` props to achieve similar theming:
+
+    ```jsx
+    <ReactAppleTree
+      treeData={treeData}
+      onChange={setTreeData}
+      generateNodeProps={({ node, path }) => ({
+        className: 'custom-node',
+        style: {
+          // Your custom styles
+        },
+      })}
+    />
+    ```
+
+    Combine with custom CSS for full styling control.
+  </Step>
+
+  <Step title="Update DnD Context (If Using Custom Context)">
+    If you were providing your own react-dnd context, use the named export:
+
+    **Before:**
+    ```jsx
+    import SortableTreeWithoutDndContext from 'react-sortable-tree';
+    ```
+
+    **After:**
+    ```jsx
+    import { ReactAppleTreeWithoutDndContext } from '@newtonschool/react-apple-tree';
+    ```
+  </Step>
+
+  <Step title="Test Your Application">
+    Thoroughly test all tree interactions:
+    - Drag and drop functionality
+    - Node expansion/collapse
+    - Search functionality
+    - Custom callbacks (`onMoveNode`, `onVisibilityToggle`, etc.)
+    - Any custom styling or buttons added via `generateNodeProps`
+  </Step>
+</Steps>
+
+## Common Gotchas
+
+### Styled Components Peer Dependency
+
+React Apple Tree requires `styled-components` as a peer dependency. If you're not already using it in your project, you'll need to install it:
+
+```bash
+npm install styled-components
+```
+
+### CSS Import No Longer Needed
+
+Unlike `react-sortable-tree`, you don't need to import a separate CSS file. Remove any imports like:
+
+```jsx
+// Remove this line
+import 'react-sortable-tree/style.css';
+```
+
+### TypeScript Types
+
+React Apple Tree has improved TypeScript support. If you're using TypeScript, you may need to update type imports:
+
+```tsx
+import { ReactAppleTreeProps } from '@newtonschool/react-apple-tree';
+```
+
+### React Virtualized → React Window
+
+Internally, React Apple Tree uses `react-window` instead of `react-virtualized`. The prop `reactVirtualizedListProps` still exists for compatibility, but you're now passing props to the `react-window` List component.
+
+## Complete Migration Example
+
+Here's a full before/after comparison:
+
+**Before (react-sortable-tree):**
+
+```jsx
+import React, { useState } from 'react';
+import SortableTree from 'react-sortable-tree';
+import 'react-sortable-tree/style.css';
+
+function MyTree() {
+  const [treeData, setTreeData] = useState([
+    { title: 'Parent', children: [{ title: 'Child' }] },
+  ]);
+
+  return (
+    <div style={{ height: 400 }}>
+      <SortableTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+      />
+    </div>
+  );
+}
+
+export default MyTree;
+```
+
+**After (React Apple Tree):**
+
+```jsx
+import React, { useState } from 'react';
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+function MyTree() {
+  const [treeData, setTreeData] = useState([
+    { title: 'Parent', children: [{ title: 'Child' }] },
+  ]);
+
+  return (
+    <div style={{ height: 400 }}>
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+      />
+    </div>
+  );
+}
+
+export default MyTree;
+```
+
+## Benefits of Migrating
+
+<CardGroup cols={2}>
+  <Card title="Modern React Support" icon="react">
+    Full compatibility with React 18 features including concurrent rendering and automatic batching
+  </Card>
+  
+  <Card title="Better Performance" icon="gauge-high">
+    Uses react-window for improved virtualization performance with large trees
+  </Card>
+  
+  <Card title="Active Maintenance" icon="wrench">
+    Regular updates, bug fixes, and community support
+  </Card>
+  
+  <Card title="TypeScript Ready" icon="code">
+    Enhanced type definitions for better development experience
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+If you encounter issues during migration:
+
+- Check the [GitHub repository](https://github.com/Newton-School/react-apple-tree) for known issues
+- Review the [Storybook examples](https://react-apple-tree.newtonschool.co/) for implementation patterns
+- Open an issue on GitHub if you find bugs or missing features
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="book" href="/api-reference/props">
+    Explore all available props and configuration options
+  </Card>
+  
+  <Card title="Helper Functions" icon="function" href="/api-reference/helper-functions">
+    Learn about data manipulation utilities
+  </Card>
+  
+  <Card title="Examples" icon="code" href="/examples/basic-usage">
+    See practical implementation examples
+  </Card>
+  
+  <Card title="Styling" icon="palette" href="/customization/styling">
+    Customize the appearance of your tree
+  </Card>
+</CardGroup>

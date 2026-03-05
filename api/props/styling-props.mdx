@@ -1,0 +1,751 @@
+---
+title: "Styling Props"
+description: "Props for customizing the visual appearance of ReactAppleTree"
+---
+
+# Styling Props
+
+Styling props allow you to customize the visual appearance and layout of your tree, including styles, dimensions, and custom renderers.
+
+---
+
+## style
+
+<ParamField path="style" type="React.CSSProperties">
+  CSS styles applied to the outer container wrapping the tree.
+
+  ### TypeScript Signature
+  ```typescript
+  style?: React.CSSProperties | undefined;
+  ```
+
+  ### Default
+  ```javascript
+  { height: '100%' }
+  ```
+
+  ### Example: Fixed Height Tree
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    style={{ height: 600 }}
+  />
+  ```
+
+  ### Example: Custom Styling
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    style={{
+      height: '100vh',
+      backgroundColor: '#f5f5f5',
+      border: '2px solid #ddd',
+      borderRadius: 8,
+    }}
+  />
+  ```
+
+  ### Example: Responsive Height
+  ```jsx
+  function ResponsiveTree() {
+    const [treeData, setTreeData] = useState(initialData);
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        <header style={{ height: 60 }}>My App Header</header>
+        
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+          style={{ flex: 1 }} // Takes remaining height
+        />
+      </div>
+    );
+  }
+  ```
+
+  <Warning>
+    When using virtualization (default), the tree container **must** have a defined height. Use `height: '100%'`, a pixel value, or flex layout.
+  </Warning>
+</ParamField>
+
+---
+
+## innerStyle
+
+<ParamField path="innerStyle" type="React.CSSProperties">
+  CSS styles applied to the inner scrollable container. Useful for adding padding without affecting the scrollbar.
+
+  ### TypeScript Signature
+  ```typescript
+  innerStyle?: React.CSSProperties | undefined;
+  ```
+
+  ### Example: Inner Padding
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    innerStyle={{
+      padding: '20px',
+      backgroundColor: '#fafafa',
+    }}
+  />
+  ```
+
+  ### Example: Custom Scrollbar
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    innerStyle={{
+      padding: '10px',
+      // Hide scrollbar for webkit browsers
+      scrollbarWidth: 'none', // Firefox
+      msOverflowStyle: 'none', // IE/Edge
+    }}
+    style={{ overflow: 'hidden' }}
+  />
+  ```
+
+  ### Difference from `style`
+  - `style`: Applied to outer container (affects borders, overall size)
+  - `innerStyle`: Applied to scrollable content (affects padding, background of content area)
+
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    style={{
+      height: 400,
+      border: '2px solid blue', // Outer border
+    }}
+    innerStyle={{
+      padding: 20, // Space inside the border
+      backgroundColor: '#f0f0f0',
+    }}
+  />
+  ```
+</ParamField>
+
+---
+
+## className
+
+<ParamField path="className" type="string">
+  CSS class name applied to the outer tree container.
+
+  ### TypeScript Signature
+  ```typescript
+  className?: string | undefined;
+  ```
+
+  ### Example: Basic Usage
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    className="my-custom-tree"
+  />
+  ```
+
+  ### Example: Multiple Classes
+  ```jsx
+  import classNames from 'classnames';
+
+  function ThemedTree({ isDark }) {
+    return (
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+        className={classNames(
+          'tree-container',
+          { 'tree-dark': isDark },
+          { 'tree-light': !isDark }
+        )}
+      />
+    );
+  }
+  ```
+
+  ### Example: Styling with CSS
+  ```css
+  /* styles.css */
+  .my-custom-tree {
+    font-family: 'Arial', sans-serif;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+  }
+
+  .my-custom-tree .rst__node {
+    background-color: #ffffff;
+  }
+
+  .my-custom-tree .rst__nodeContent {
+    padding: 8px;
+  }
+
+  .my-custom-tree .rst__lineHalfHorizontalRight::before {
+    background-color: #0066cc;
+  }
+  ```
+
+  ```jsx
+  import './styles.css';
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    className="my-custom-tree"
+  />
+  ```
+</ParamField>
+
+---
+
+## scaffoldBlockPxWidth
+
+<ParamField path="scaffoldBlockPxWidth" type="number">
+  Width in pixels of the blocks containing the tree structure lines (the indentation guides).
+
+  ### TypeScript Signature
+  ```typescript
+  scaffoldBlockPxWidth?: number | undefined;
+  ```
+
+  ### Default
+  `44`
+
+  ### Example: Compact Indentation
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    scaffoldBlockPxWidth={30}
+  />
+  ```
+
+  ### Example: Wide Indentation
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    scaffoldBlockPxWidth={60}
+  />
+  ```
+
+  ### Visual Comparison
+  ```jsx
+  function IndentationComparison() {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20 }}>
+        <div>
+          <h3>Compact (30px)</h3>
+          <ReactAppleTree
+            treeData={treeData}
+            onChange={setTreeData}
+            getNodeKey={({ node }) => node.id}
+            scaffoldBlockPxWidth={30}
+          />
+        </div>
+
+        <div>
+          <h3>Default (44px)</h3>
+          <ReactAppleTree
+            treeData={treeData}
+            onChange={setTreeData}
+            getNodeKey={({ node }) => node.id}
+            scaffoldBlockPxWidth={44}
+          />
+        </div>
+
+        <div>
+          <h3>Wide (60px)</h3>
+          <ReactAppleTree
+            treeData={treeData}
+            onChange={setTreeData}
+            getNodeKey={({ node }) => node.id}
+            scaffoldBlockPxWidth={60}
+          />
+        </div>
+      </div>
+    );
+  }
+  ```
+
+  ### Use Cases
+  - **Compact trees**: Use smaller values (25-35px) for space-constrained layouts
+  - **Readable deep trees**: Use larger values (50-70px) when you have deeply nested structures
+  - **Mobile**: Use smaller values (25-30px) for mobile screens
+</ParamField>
+
+---
+
+## rowHeight
+
+<ParamField path="rowHeight" type="number | ((info: RowHeightInfo<T>) => number)">
+  Height of each tree row. Can be a fixed number or a function that returns height based on node data.
+
+  ### TypeScript Signature
+  ```typescript
+  rowHeight?: number | undefined;
+
+  // Or as a function:
+  rowHeight?: (info: {
+    treeIndex: number;
+    node: TreeItem<T>;
+    path: NumberOrStringArray;
+  }) => number;
+  ```
+
+  ### Default
+  `62`
+
+  ### Example: Fixed Height
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    rowHeight={80}
+  />
+  ```
+
+  ### Example: Compact Rows
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    rowHeight={40}
+  />
+  ```
+
+  ### Example: Dynamic Height Based on Content
+  ```jsx
+  const rowHeight = ({ node }) => {
+    // Base height
+    let height = 50;
+    
+    // Add height for subtitle
+    if (node.subtitle) {
+      height += 20;
+    }
+    
+    // Add height for long titles
+    if (node.title && node.title.length > 50) {
+      height += 30;
+    }
+    
+    // Add height if node has children
+    if (node.children && node.children.length > 0) {
+      height += 10;
+    }
+    
+    return height;
+  };
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    rowHeight={rowHeight}
+  />
+  ```
+
+  ### Example: Different Heights by Node Type
+  ```jsx
+  const rowHeight = ({ node }) => {
+    switch (node.type) {
+      case 'header':
+        return 80;
+      case 'section':
+        return 60;
+      case 'item':
+        return 40;
+      default:
+        return 50;
+    }
+  };
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    rowHeight={rowHeight}
+  />
+  ```
+
+  <Note>
+    When using a function for `rowHeight`, ensure it returns consistent values for the same node to avoid rendering issues.
+  </Note>
+</ParamField>
+
+---
+
+## slideRegionSize
+
+<ParamField path="slideRegionSize" type="number">
+  Size in pixels of the region near the edges that triggers auto-scrolling during drag operations.
+
+  ### TypeScript Signature
+  ```typescript
+  slideRegionSize?: number | undefined;
+  ```
+
+  ### Default
+  `100`
+
+  ### Example: Smaller Scroll Region
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    slideRegionSize={50}
+  />
+  ```
+
+  ### Example: Disable Auto-scroll
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    slideRegionSize={0}
+  />
+  ```
+
+  ### Example: Larger Scroll Region for Touch Devices
+  ```jsx
+  import { useState, useEffect } from 'react';
+
+  function AdaptiveScrollTree() {
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+    useEffect(() => {
+      setIsTouchDevice('ontouchstart' in window);
+    }, []);
+
+    return (
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+        slideRegionSize={isTouchDevice ? 150 : 100}
+      />
+    );
+  }
+  ```
+
+  ### How It Works
+  When dragging a node:
+  - Dragging within **slideRegionSize** pixels of the top edge scrolls up
+  - Dragging within **slideRegionSize** pixels of the bottom edge scrolls down
+  - The closer to the edge, the faster the scroll
+</ParamField>
+
+---
+
+## theme
+
+<ParamField path="theme" type="ThemeProps<T>">
+  Theme configuration object for customizing the tree's appearance. Allows you to override default renderers and styling.
+
+  ### TypeScript Signature
+  ```typescript
+  theme?: ThemeProps<T> | undefined;
+
+  interface ThemeProps<T = {}> {
+    style?: React.CSSProperties;
+    innerStyle?: React.CSSProperties;
+    scaffoldBlockPxWidth?: number;
+    slideRegionSize?: number;
+    rowHeight?: number;
+    nodeContentRenderer?: NodeRenderer<T>;
+    placeholderRenderer?: PlaceholderRenderer<T>;
+    treeNodeRenderer?: TreeRenderer<T>;
+  }
+  ```
+
+  ### Example: Custom Theme Object
+  ```jsx
+  const myTheme = {
+    scaffoldBlockPxWidth: 40,
+    rowHeight: 50,
+    style: {
+      backgroundColor: '#fafafa',
+      borderRadius: 8,
+    },
+    innerStyle: {
+      padding: 16,
+    },
+  };
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    theme={myTheme}
+  />
+  ```
+
+  ### Example: Dark Theme
+  ```jsx
+  const darkTheme = {
+    style: {
+      backgroundColor: '#1e1e1e',
+      color: '#ffffff',
+    },
+    innerStyle: {
+      padding: 12,
+    },
+    scaffoldBlockPxWidth: 44,
+    rowHeight: 60,
+  };
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    theme={darkTheme}
+    className="dark-tree"
+  />
+  ```
+
+  <Note>
+    The `theme` prop is a convenient way to package multiple styling options together. Individual props like `style` and `scaffoldBlockPxWidth` will override theme values if both are provided.
+  </Note>
+</ParamField>
+
+---
+
+## nodeContentRenderer
+
+<ParamField path="nodeContentRenderer" type="React.ComponentType<NodeRendererProps<T>>">
+  Custom component for rendering the content of each node. Use this for complete control over node appearance while keeping the tree structure scaffolding.
+
+  ### TypeScript Signature
+  ```typescript
+  nodeContentRenderer?: NodeRenderer<T> | undefined;
+
+  type NodeRenderer<T = {}> = React.ComponentType<NodeRendererProps<T>>;
+
+  interface NodeRendererProps<T = {}> {
+    node: TreeItem<T>;
+    path: NumberOrStringArray;
+    treeIndex: number;
+    isSearchMatch: boolean;
+    isSearchFocus: boolean;
+    canDrag: boolean;
+    scaffoldBlockPxWidth: number;
+    toggleChildrenVisibility?: (data: NodeData<T>) => void;
+    buttons?: React.JSX.Element[];
+    className?: string;
+    style?: React.CSSProperties;
+    title?: ((data: NodeData<T>) => React.JSX.Element) | React.JSX.Element;
+    subtitle?: ((data: NodeData<T>) => React.JSX.Element) | React.JSX.Element;
+    icons?: React.JSX.Element[];
+    lowerSiblingCounts: number[];
+    // ... plus react-dnd props
+  }
+  ```
+
+  ### Example: Custom Node Renderer
+  ```jsx
+  import { NodeRendererProps } from '@newtonschool/react-apple-tree';
+
+  function CustomNodeRenderer(props: NodeRendererProps) {
+    const { node, connectDragSource, connectDragPreview } = props;
+
+    return connectDragPreview(
+      <div style={{ display: 'flex', alignItems: 'center', padding: 8 }}>
+        {connectDragSource(
+          <div style={{ cursor: 'move', marginRight: 8 }}>⋮⋮</div>
+        )}
+        
+        <div style={{ flex: 1 }}>
+          <strong>{node.title}</strong>
+          {node.subtitle && (
+            <div style={{ fontSize: 12, color: '#666' }}>
+              {node.subtitle}
+            </div>
+          )}
+        </div>
+
+        {node.badge && (
+          <span style={{ 
+            padding: '2px 8px', 
+            backgroundColor: '#007bff',
+            color: 'white',
+            borderRadius: 12,
+            fontSize: 11,
+          }}>
+            {node.badge}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    nodeContentRenderer={CustomNodeRenderer}
+  />
+  ```
+
+  <Warning>
+    Creating a custom `nodeContentRenderer` is an advanced option. Most customization can be achieved with `generateNodeProps` or CSS. Only use this when you need complete control over node rendering.
+  </Warning>
+</ParamField>
+
+---
+
+## placeholderRenderer
+
+<ParamField path="placeholderRenderer" type="React.ComponentType<PlaceholderRendererProps<T>>">
+  Custom component for rendering the placeholder shown during drag operations.
+
+  ### TypeScript Signature
+  ```typescript
+  placeholderRenderer?: PlaceholderRenderer<T> | undefined;
+
+  type PlaceholderRenderer<T = {}> = React.ComponentType<
+    PlaceholderRendererProps<T>
+  >;
+
+  interface PlaceholderRendererProps<T = {}> {
+    isOver: boolean;
+    canDrop: boolean;
+    draggedNode: TreeItem<T>;
+  }
+  ```
+
+  ### Example: Custom Placeholder
+  ```jsx
+  function CustomPlaceholder({ isOver, canDrop, draggedNode }) {
+    return (
+      <div
+        style={{
+          height: 62,
+          backgroundColor: canDrop ? '#e3f2fd' : '#ffebee',
+          border: `2px dashed ${canDrop ? '#2196f3' : '#f44336'}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: isOver ? 1 : 0.5,
+        }}
+      >
+        {canDrop ? (
+          <span>Drop "{draggedNode.title}" here</span>
+        ) : (
+          <span>Cannot drop here</span>
+        )}
+      </div>
+    );
+  }
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    placeholderRenderer={CustomPlaceholder}
+  />
+  ```
+</ParamField>
+
+---
+
+## Complete Styling Example
+
+```jsx
+import React, { useState } from 'react';
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+import './tree-styles.css';
+
+function StyledTree() {
+  const [treeData, setTreeData] = useState([
+    {
+      id: 1,
+      title: 'Design',
+      subtitle: '5 files',
+      type: 'folder',
+      expanded: true,
+      children: [
+        { id: 2, title: 'Logo.svg', type: 'file' },
+        { id: 3, title: 'Mockup.fig', type: 'file' },
+      ],
+    },
+    {
+      id: 4,
+      title: 'Development',
+      subtitle: '3 files',
+      type: 'folder',
+      children: [
+        { id: 5, title: 'App.tsx', type: 'file' },
+      ],
+    },
+  ]);
+
+  const generateNodeProps = ({ node }) => ({
+    style: {
+      backgroundColor: node.type === 'folder' ? '#f0f7ff' : '#ffffff',
+      borderLeft: `3px solid ${node.type === 'folder' ? '#0066cc' : '#cccccc'}`,
+    },
+    buttons: [
+      <button key="edit" style={{ marginRight: 5 }}>✏️</button>,
+      <button key="delete">🗑️</button>,
+    ],
+  });
+
+  return (
+    <div style={{ height: '100vh', padding: 20 }}>
+      <h1>File Explorer</h1>
+      <div style={{ height: 'calc(100vh - 100px)' }}>
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+          generateNodeProps={generateNodeProps}
+          style={{
+            height: '100%',
+            border: '1px solid #e0e0e0',
+            borderRadius: 8,
+            backgroundColor: '#fafafa',
+          }}
+          innerStyle={{
+            padding: 12,
+          }}
+          className="custom-file-tree"
+          scaffoldBlockPxWidth={40}
+          rowHeight={60}
+          slideRegionSize={80}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default StyledTree;
+```
+
+## Related Props
+
+- See [Callback Props](/api/props/callback-props) for `generateNodeProps` which adds dynamic styles to nodes
+- See [Behavior Props](/api/props/behavior-props) for functional configuration
+- See [Required Props](/api/props/required-props) for basic setup

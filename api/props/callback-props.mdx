@@ -1,0 +1,606 @@
+---
+title: "Callback Props"
+description: "Event handlers and callback functions for ReactAppleTree interactions"
+---
+
+# Callback Props
+
+Callback props allow you to respond to user interactions and customize behavior during drag-and-drop operations, node expansion, and other tree events.
+
+---
+
+## generateNodeProps
+
+<ParamField path="generateNodeProps" type="(data: ExtendedNodeData<T>) => ExtendedNodeProps">
+  Generate additional props to be passed to each node renderer. Use this to add buttons, custom styles, class names, or modify the title rendering for individual nodes.
+
+  ### TypeScript Signature
+  ```typescript
+  type GenerateNodePropsFn<T> = (
+    data: ExtendedNodeData<T>
+  ) => ExtendedNodeProps;
+
+  interface ExtendedNodeData<T = {}> extends NodeData<T> {
+    parentNode?: TreeItem<T>;
+    lowerSiblingCounts: number[];
+    isSearchMatch: boolean;
+    isSearchFocus: boolean;
+  }
+
+  interface ExtendedNodeProps {
+    buttons?: Array<React.ReactNode>;
+    title?: () => React.ReactNode;
+    style?: React.CSSProperties;
+    className?: string;
+  }
+  ```
+
+  ### Parameters
+  - `data.node`: The tree node object
+  - `data.path`: The path to the node (array of indices)
+  - `data.treeIndex`: The index of the node in the flattened tree
+  - `data.parentNode`: The parent node (if any)
+  - `data.lowerSiblingCounts`: Array of sibling counts at each level
+  - `data.isSearchMatch`: Whether the node matches the current search
+  - `data.isSearchFocus`: Whether the node is the focused search result
+
+  ### Returns
+  Object with optional properties:
+  - `buttons`: Array of React elements to display as action buttons
+  - `title`: Function that returns a custom title element
+  - `style`: CSS styles to apply to the node
+  - `className`: CSS class name for the node
+
+  ### Example: Adding Buttons
+  ```jsx
+  import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+  function TreeWithButtons() {
+    const [treeData, setTreeData] = useState(initialData);
+
+    const generateNodeProps = ({ node, path }) => ({
+      buttons: [
+        <button
+          key="edit"
+          onClick={() => handleEdit(node)}
+          style={{ marginRight: 8 }}
+        >
+          Edit
+        </button>,
+        <button
+          key="delete"
+          onClick={() => handleDelete(path)}
+        >
+          Delete
+        </button>,
+      ],
+    });
+
+    return (
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+        generateNodeProps={generateNodeProps}
+      />
+    );
+  }
+  ```
+
+  ### Example: Conditional Styling
+  ```jsx
+  const generateNodeProps = ({ node, isSearchMatch, isSearchFocus }) => {
+    let style = {};
+    let className = '';
+
+    // Highlight search matches
+    if (isSearchMatch) {
+      style.backgroundColor = '#fff3cd';
+    }
+
+    // Emphasize focused search result
+    if (isSearchFocus) {
+      style.backgroundColor = '#ffc107';
+      style.fontWeight = 'bold';
+    }
+
+    // Custom styling based on node type
+    if (node.type === 'folder') {
+      className = 'folder-node';
+      style.color = '#0066cc';
+    } else if (node.type === 'file') {
+      className = 'file-node';
+      style.color = '#333';
+    }
+
+    return { style, className };
+  };
+  ```
+
+  ### Example: Custom Title Renderer
+  ```jsx
+  const generateNodeProps = ({ node, path }) => ({
+    title: () => (
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <span style={{ marginRight: 8 }}>
+          {node.icon}
+        </span>
+        <strong>{node.title}</strong>
+        {node.badge && (
+          <span className="badge">{node.badge}</span>
+        )}
+      </div>
+    ),
+  });
+  ```
+
+  ### Example: Context-Aware Buttons
+  ```jsx
+  const generateNodeProps = ({ node, path, parentNode }) => {
+    const buttons = [];
+
+    // Add "Add Child" button only for folders
+    if (node.type === 'folder') {
+      buttons.push(
+        <button
+          key="add-child"
+          onClick={() => addChildNode(path)}
+        >
+          + Add Child
+        </button>
+      );
+    }
+
+    // Only show delete if not the root level
+    if (parentNode) {
+      buttons.push(
+        <button
+          key="delete"
+          onClick={() => deleteNode(path)}
+        >
+          Delete
+        </button>
+      );
+    }
+
+    return { buttons };
+  };
+  ```
+</ParamField>
+
+---
+
+## onMoveNode
+
+<ParamField path="onMoveNode" type="(data: MoveNodeData<T>) => void">
+  Called after a node has been successfully moved to a new position in the tree via drag-and-drop.
+
+  ### TypeScript Signature
+  ```typescript
+  type OnMoveNodeFn<T> = (
+    data: NodeData<T> & FullTree<T> & OnMovePreviousAndNextLocation<T>
+  ) => void;
+
+  interface OnMovePreviousAndNextLocation<T = {}> {
+    prevTreeIndex: number;
+    prevPath: NumberOrStringArray;
+    nextTreeIndex: number;
+    nextPath: NumberOrStringArray;
+    nextParentNode: TreeItem<T> | null;
+  }
+  ```
+
+  ### Parameters
+  - `data.node`: The moved node
+  - `data.treeIndex`: Current tree index
+  - `data.path`: Current path
+  - `data.treeData`: Updated tree data after the move
+  - `data.prevTreeIndex`: Tree index before the move
+  - `data.prevPath`: Path before the move
+  - `data.nextTreeIndex`: Tree index after the move
+  - `data.nextPath`: Path after the move
+  - `data.nextParentNode`: New parent node (null if root level)
+
+  ### Example: Logging Moves
+  ```jsx
+  const handleMoveNode = ({ node, prevPath, nextPath, nextParentNode }) => {
+    console.log(`Moved "${node.title}"`);
+    console.log('From path:', prevPath);
+    console.log('To path:', nextPath);
+    
+    if (nextParentNode) {
+      console.log('New parent:', nextParentNode.title);
+    } else {
+      console.log('Moved to root level');
+    }
+  };
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    onMoveNode={handleMoveNode}
+  />
+  ```
+
+  ### Example: Syncing with Backend
+  ```jsx
+  const handleMoveNode = async ({ node, nextPath, nextParentNode, treeData }) => {
+    try {
+      await api.updateNodePosition({
+        nodeId: node.id,
+        newParentId: nextParentNode?.id || null,
+        newPosition: nextPath[nextPath.length - 1],
+      });
+      
+      console.log('Position updated in database');
+    } catch (error) {
+      console.error('Failed to update position:', error);
+      // Optionally revert the tree to previous state
+    }
+  };
+  ```
+
+  ### Example: Tracking Hierarchy Changes
+  ```jsx
+  const handleMoveNode = ({ node, prevPath, nextPath, nextParentNode }) => {
+    const prevDepth = prevPath.length;
+    const nextDepth = nextPath.length;
+    
+    if (nextDepth > prevDepth) {
+      console.log(`Node nested deeper: level ${prevDepth} -> ${nextDepth}`);
+    } else if (nextDepth < prevDepth) {
+      console.log(`Node moved up: level ${prevDepth} -> ${nextDepth}`);
+    } else {
+      console.log('Node reordered at same level');
+    }
+  };
+  ```
+</ParamField>
+
+---
+
+## onVisibilityToggle
+
+<ParamField path="onVisibilityToggle" type="(data: OnVisibilityToggleData<T>) => void">
+  Called when a node's children are expanded or collapsed.
+
+  ### TypeScript Signature
+  ```typescript
+  type OnVisibilityToggleFn<T> = (
+    data: OnVisibilityToggleData<T>
+  ) => void;
+
+  interface OnVisibilityToggleData<T = {}> {
+    treeData: Array<TreeItem<T>>;
+    node: TreeItem<T>;
+    expanded: boolean;
+  }
+  ```
+
+  ### Parameters
+  - `data.treeData`: The updated tree data
+  - `data.node`: The node that was toggled
+  - `data.expanded`: True if expanded, false if collapsed
+
+  ### Example: Tracking Expansion
+  ```jsx
+  const handleVisibilityToggle = ({ node, expanded }) => {
+    if (expanded) {
+      console.log(`Expanded: ${node.title}`);
+    } else {
+      console.log(`Collapsed: ${node.title}`);
+    }
+  };
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    onVisibilityToggle={handleVisibilityToggle}
+  />
+  ```
+
+  ### Example: Persisting Expansion State
+  ```jsx
+  const handleVisibilityToggle = ({ node, expanded }) => {
+    // Save expansion state to localStorage
+    const expandedNodes = JSON.parse(
+      localStorage.getItem('expandedNodes') || '{}'
+    );
+    
+    expandedNodes[node.id] = expanded;
+    localStorage.setItem('expandedNodes', JSON.stringify(expandedNodes));
+  };
+  ```
+
+  ### Example: Lazy Loading Children
+  ```jsx
+  const handleVisibilityToggle = async ({ node, expanded, treeData }) => {
+    if (expanded && node.hasChildren && !node.children) {
+      // Fetch children when node is expanded for the first time
+      const children = await fetchChildNodes(node.id);
+      
+      // Update tree data with loaded children
+      const updatedTreeData = addChildrenToNode(treeData, node.id, children);
+      setTreeData(updatedTreeData);
+    }
+  };
+  ```
+</ParamField>
+
+---
+
+## onDragStateChanged
+
+<ParamField path="onDragStateChanged" type="(data: OnDragStateChangedData<T>) => void">
+  Called when a drag operation starts or ends.
+
+  ### TypeScript Signature
+  ```typescript
+  type OnDragStateChangedFn<T> = (
+    data: OnDragStateChangedData<T>
+  ) => void;
+
+  interface OnDragStateChangedData<T = {}> {
+    isDragging: boolean;
+    draggedNode: TreeItem<T>;
+  }
+  ```
+
+  ### Parameters
+  - `data.isDragging`: True when drag starts, false when drag ends
+  - `data.draggedNode`: The node being dragged
+
+  ### Example: Visual Feedback
+  ```jsx
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragStateChanged = ({ isDragging, draggedNode }) => {
+    setIsDragging(isDragging);
+    
+    if (isDragging) {
+      console.log(`Started dragging: ${draggedNode.title}`);
+    } else {
+      console.log(`Stopped dragging: ${draggedNode.title}`);
+    }
+  };
+
+  return (
+    <div className={isDragging ? 'tree-dragging' : ''}>
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+        onDragStateChanged={handleDragStateChanged}
+      />
+    </div>
+  );
+  ```
+
+  ### Example: Disabling Other Actions During Drag
+  ```jsx
+  const [draggedNode, setDraggedNode] = useState(null);
+
+  const handleDragStateChanged = ({ isDragging, draggedNode }) => {
+    setDraggedNode(isDragging ? draggedNode : null);
+  };
+
+  const generateNodeProps = ({ node }) => ({
+    buttons: [
+      <button
+        disabled={!!draggedNode}
+        onClick={() => handleAction(node)}
+      >
+        Action
+      </button>,
+    ],
+  });
+  ```
+</ParamField>
+
+---
+
+## canDrag
+
+<ParamField path="canDrag" type="boolean | ((data: ExtendedNodeData) => boolean)">
+  Determines whether a node can be dragged. Can be a boolean to enable/disable dragging for all nodes, or a function to control dragging per node.
+
+  ### TypeScript Signature
+  ```typescript
+  type CanDragFn =
+    | ((data: ExtendedNodeData) => boolean)
+    | boolean
+    | undefined;
+  ```
+
+  ### Parameters (when function)
+  - `data.node`: The tree node
+  - `data.path`: Path to the node
+  - `data.treeIndex`: Index in the flattened tree
+  - `data.parentNode`: Parent node
+  - `data.lowerSiblingCounts`: Sibling counts at each level
+  - `data.isSearchMatch`: Whether node matches search
+  - `data.isSearchFocus`: Whether node is focused search result
+
+  ### Example: Disable All Dragging
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    canDrag={false}
+  />
+  ```
+
+  ### Example: Conditional Dragging
+  ```jsx
+  const canDrag = ({ node }) => {
+    // Only allow dragging of files, not folders
+    return node.type === 'file';
+  };
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    canDrag={canDrag}
+  />
+  ```
+
+  ### Example: Role-Based Dragging
+  ```jsx
+  const canDrag = ({ node, path }) => {
+    // Root level nodes cannot be dragged
+    if (path.length === 1) {
+      return false;
+    }
+    
+    // Users with 'admin' role can drag anything
+    if (userRole === 'admin') {
+      return true;
+    }
+    
+    // Regular users can only drag their own nodes
+    return node.ownerId === currentUserId;
+  };
+  ```
+</ParamField>
+
+---
+
+## canDrop
+
+<ParamField path="canDrop" type="(data: CanDropData<T>) => boolean">
+  Determines whether a dragged node can be dropped at a specific location.
+
+  ### TypeScript Signature
+  ```typescript
+  type CanDropFn<T> = (
+    data: OnDragPreviousAndNextLocation<T> & NodeData<T>
+  ) => boolean;
+
+  interface OnDragPreviousAndNextLocation<T = {}> {
+    prevTreeIndex: number;
+    prevPath: NumberOrStringArray;
+    prevParent: TreeItem<T> | null;
+    nextTreeIndex: number;
+    nextPath: NumberOrStringArray;
+    nextParent: TreeItem<T> | null;
+  }
+  ```
+
+  ### Parameters
+  - `data.node`: The node being dragged
+  - `data.prevPath`: Path before the drop
+  - `data.prevParent`: Parent before the drop
+  - `data.nextPath`: Proposed path after the drop
+  - `data.nextParent`: Proposed parent after the drop
+
+  ### Example: Restrict Folder Structure
+  ```jsx
+  const canDrop = ({ node, nextParent }) => {
+    // Files can only be dropped into folders
+    if (node.type === 'file') {
+      return !nextParent || nextParent.type === 'folder';
+    }
+    
+    // Folders can be dropped anywhere
+    return true;
+  };
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    canDrop={canDrop}
+  />
+  ```
+
+  ### Example: Prevent Circular Dependencies
+  ```jsx
+  const canDrop = ({ node, nextParent }) => {
+    // Don't allow dropping a node into itself or its descendants
+    if (!nextParent) return true;
+    
+    let current = nextParent;
+    while (current) {
+      if (current.id === node.id) {
+        return false; // Would create circular reference
+      }
+      current = current.parent;
+    }
+    
+    return true;
+  };
+  ```
+
+  ### Example: Enforce Depth Limits
+  ```jsx
+  const canDrop = ({ node, nextPath }) => {
+    const maxDepth = 4;
+    const nodeDepth = getNodeDepth(node); // Count node's descendants
+    const targetDepth = nextPath.length;
+    
+    // Ensure total depth doesn't exceed maximum
+    return targetDepth + nodeDepth <= maxDepth;
+  };
+  ```
+</ParamField>
+
+---
+
+## canNodeHaveChildren
+
+<ParamField path="canNodeHaveChildren" type="boolean | ((node: TreeItem<T>) => boolean)">
+  Determines whether a node can have children. Useful for preventing drop hover preview when combined with `canDrop`.
+
+  ### TypeScript Signature
+  ```typescript
+  type CanNodeHaveChildrenFn<T> = (node: TreeItem<T>) => boolean;
+  ```
+
+  ### Example: Files Cannot Have Children
+  ```jsx
+  const canNodeHaveChildren = (node) => {
+    return node.type === 'folder';
+  };
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    canNodeHaveChildren={canNodeHaveChildren}
+  />
+  ```
+
+  ### Example: Maximum Children Limit
+  ```jsx
+  const canNodeHaveChildren = (node) => {
+    if (node.type !== 'folder') return false;
+    
+    const maxChildren = 10;
+    const currentChildren = node.children?.length || 0;
+    
+    return currentChildren < maxChildren;
+  };
+  ```
+
+  ### Example: Disable All Nesting
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+    canNodeHaveChildren={false}
+  />
+  ```
+</ParamField>
+
+---
+
+## Related Props
+
+- See [Required Props](/api/props/required-props) for `onChange` and `getNodeKey` details
+- See [Behavior Props](/api/props/behavior-props) for `maxDepth` which complements drag-drop restrictions
+- See [Search Props](/api/props/search-props) for `searchFinishCallback` which is another callback type

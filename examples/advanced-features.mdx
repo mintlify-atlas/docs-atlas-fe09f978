@@ -1,0 +1,620 @@
+---
+title: Advanced Features
+description: Multiple trees, RTL support, virtualization, and performance optimization
+---
+
+## Multiple Trees on Same Page
+
+When using multiple trees on the same page, use `ReactAppleTreeWithoutDndContext` and provide your own `DndProvider`:
+
+```jsx
+import React, { useState } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { ReactAppleTreeWithoutDndContext } from '@newtonschool/react-apple-tree';
+
+const MultipleTrees = () => {
+  const [tree1Data, setTree1Data] = useState([
+    {
+      id: 1,
+      title: 'Node 1',
+      children: [{ id: 2, title: 'Node 1.1' }],
+    },
+    {
+      id: 3,
+      title: 'Node 2',
+      children: [
+        { id: 4, title: 'Node 2.1' },
+        { id: 5, title: 'Node 2.2', children: [{ id: 6, title: 'Node 2.2.1' }] },
+      ],
+    },
+  ]);
+
+  const [tree2Data, setTree2Data] = useState([
+    {
+      id: 8,
+      title: 'Node 1',
+      children: [{ id: 9, title: 'Node 1.1' }],
+    },
+    {
+      id: 10,
+      title: 'Node 2',
+      children: [
+        { id: 11, title: 'Node 2.1' },
+        { id: 12, title: 'Node 2.2', children: [{ id: 13, title: 'Node 2.2.1' }] },
+      ],
+    },
+  ]);
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <div style={{ display: 'flex', gap: 20 }}>
+        <div style={{ flex: 1, height: 400 }}>
+          <h3>Tree 1</h3>
+          <ReactAppleTreeWithoutDndContext
+            treeData={tree1Data}
+            onChange={setTree1Data}
+            getNodeKey={({ node }) => node.id}
+          />
+        </div>
+        
+        <div style={{ flex: 1, height: 400 }}>
+          <h3>Tree 2</h3>
+          <ReactAppleTreeWithoutDndContext
+            treeData={tree2Data}
+            onChange={setTree2Data}
+            getNodeKey={({ node }) => node.id}
+          />
+        </div>
+      </div>
+    </DndProvider>
+  );
+};
+```
+
+<Note>
+  When using a single tree, import the default `ReactAppleTree` which includes its own `DndProvider`. Only use `ReactAppleTreeWithoutDndContext` when managing multiple trees.
+</Note>
+
+## Drag Between Multiple Trees
+
+To enable dragging nodes between trees, use the same `dndType` for both:
+
+```jsx
+const SHARED_DND_TYPE = 'MY_TREE_NODE';
+
+<DndProvider backend={HTML5Backend}>
+  <ReactAppleTreeWithoutDndContext
+    treeData={tree1Data}
+    onChange={setTree1Data}
+    getNodeKey={({ node }) => node.id}
+    dndType={SHARED_DND_TYPE}
+  />
+  
+  <ReactAppleTreeWithoutDndContext
+    treeData={tree2Data}
+    onChange={setTree2Data}
+    getNodeKey={({ node }) => node.id}
+    dndType={SHARED_DND_TYPE}
+  />
+</DndProvider>
+```
+
+<Tip>
+  Use different `dndType` values to prevent dragging between specific trees while still allowing multiple trees on the page.
+</Tip>
+
+## RTL (Right-to-Left) Support
+
+Enable RTL layout for languages like Arabic and Hebrew:
+
+```jsx
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  rowDirection="rtl"
+/>
+```
+
+With RTL enabled:
+- Tree structure lines appear on the right
+- Expand/collapse buttons move to the right
+- Node content flows right-to-left
+- Drag-and-drop interactions are mirrored
+
+```jsx
+const RtlTree = () => {
+  const [treeData, setTreeData] = useState([
+    {
+      id: 1,
+      title: 'العقدة الأولى', // Arabic text
+      children: [
+        { id: 2, title: 'العقدة الفرعية ١.١' },
+      ],
+    },
+  ]);
+
+  return (
+    <div style={{ height: 400, direction: 'rtl' }}>
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+        rowDirection="rtl"
+      />
+    </div>
+  );
+};
+```
+
+## Virtualization Configuration
+
+The tree uses virtualization by default for optimal performance with large datasets:
+
+```jsx
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  
+  // Enable/disable virtualization (default: true)
+  isVirtualized={true}
+  
+  // Pass custom props to react-window's List component
+  reactVirtualizedListProps={{
+    overscanCount: 10,
+    className: 'custom-list-class',
+  }}
+/>
+```
+
+<Tip>
+  Keep virtualization enabled (`isVirtualized={true}`) for trees with more than 100 nodes to maintain smooth scrolling and rendering performance.
+</Tip>
+
+### When to Disable Virtualization
+
+Disable virtualization for:
+- Very small trees (< 20 nodes)
+- Trees that need print-friendly rendering
+- When you need all nodes in the DOM simultaneously
+
+```jsx
+<ReactAppleTree
+  treeData={smallTreeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  isVirtualized={false}
+/>
+```
+
+## Restricting Tree Depth
+
+Limit how deep nodes can be nested using `maxDepth`:
+
+```jsx
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  maxDepth={3} // Nodes can only be nested 3 levels deep
+/>
+```
+
+This prevents users from dropping nodes beyond the specified depth:
+
+```jsx
+const ShallowTree = () => {
+  const [treeData, setTreeData] = useState([
+    {
+      id: 1,
+      title: 'Level 1',
+      children: [
+        {
+          id: 2,
+          title: 'Level 2',
+          children: [
+            {
+              id: 3,
+              title: 'Level 3 (max depth)',
+              // Can't add children here if maxDepth={3}
+            },
+          ],
+        },
+      ],
+    },
+  ]);
+
+  return (
+    <div style={{ height: 400 }}>
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+        maxDepth={3}
+      />
+    </div>
+  );
+};
+```
+
+## Controlling Node Children
+
+Use `canNodeHaveChildren` to control which nodes can have children:
+
+```jsx
+// Boolean value - all or none
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  canNodeHaveChildren={true} // All nodes can have children (default)
+/>
+
+// Function - conditional logic
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  canNodeHaveChildren={(node) => {
+    // Only 'folder' type nodes can have children
+    return node.type === 'folder';
+  }}
+/>
+```
+
+Practical example with file tree:
+
+```jsx
+const FileTree = () => {
+  const [treeData, setTreeData] = useState([
+    {
+      id: 1,
+      title: 'Documents',
+      type: 'folder',
+      children: [
+        { id: 2, title: 'Report.pdf', type: 'file' },
+        { id: 3, title: 'Invoices', type: 'folder', children: [] },
+      ],
+    },
+  ]);
+
+  return (
+    <div style={{ height: 400 }}>
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+        canNodeHaveChildren={(node) => node.type === 'folder'}
+        generateNodeProps={({ node }) => ({
+          title: () => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>{node.type === 'folder' ? '📁' : '📄'}</span>
+              <span>{node.title}</span>
+            </div>
+          ),
+        })}
+      />
+    </div>
+  );
+};
+```
+
+## Controlling Drag Behavior
+
+Customize which nodes can be dragged:
+
+```jsx
+// Disable dragging for all nodes
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  canDrag={false}
+/>
+
+// Conditional dragging based on node properties
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  canDrag={({ node, path, treeIndex }) => {
+    // Don't allow dragging root level nodes
+    if (path.length === 1) return false;
+    
+    // Don't allow dragging locked nodes
+    if (node.locked) return false;
+    
+    return true;
+  }}
+/>
+```
+
+## Controlling Drop Behavior
+
+Control where nodes can be dropped:
+
+```jsx
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  canDrop={({ node, nextParent, prevPath, nextPath }) => {
+    // Prevent dropping into itself or its descendants
+    if (nextPath.slice(0, prevPath.length).every((val, i) => val === prevPath[i])) {
+      return false;
+    }
+    
+    // Only allow files to be dropped into folders
+    if (node.type === 'file' && nextParent?.type !== 'folder') {
+      return false;
+    }
+    
+    return true;
+  }}
+/>
+```
+
+## External Drag Sources
+
+Accept nodes from external drag sources:
+
+```jsx
+import React, { useState } from 'react';
+import { DndProvider, useDrag } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { ReactAppleTreeWithoutDndContext } from '@newtonschool/react-apple-tree';
+
+const TREE_NODE_TYPE = 'TREE_NODE';
+
+const DraggableItem = ({ item }) => {
+  const [{ isDragging }, drag] = useDrag({
+    type: TREE_NODE_TYPE,
+    item: () => ({
+      node: { ...item },
+    }),
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  return (
+    <div
+      ref={drag}
+      style={{
+        padding: '8px 12px',
+        marginBottom: '8px',
+        backgroundColor: '#e3f2fd',
+        cursor: 'move',
+        opacity: isDragging ? 0.5 : 1,
+      }}
+    >
+      {item.title}
+    </div>
+  );
+};
+
+const TreeWithExternalSource = () => {
+  const [treeData, setTreeData] = useState([]);
+  
+  const externalItems = [
+    { id: 'ext-1', title: 'Drag me to tree 1' },
+    { id: 'ext-2', title: 'Drag me to tree 2' },
+  ];
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <div style={{ display: 'flex', gap: 20 }}>
+        <div style={{ width: 200 }}>
+          <h3>External Items</h3>
+          {externalItems.map((item) => (
+            <DraggableItem key={item.id} item={item} />
+          ))}
+        </div>
+        
+        <div style={{ flex: 1, height: 400 }}>
+          <h3>Tree</h3>
+          <ReactAppleTreeWithoutDndContext
+            treeData={treeData}
+            onChange={setTreeData}
+            getNodeKey={({ node }) => node.id}
+            dndType={TREE_NODE_TYPE}
+          />
+        </div>
+      </div>
+    </DndProvider>
+  );
+};
+```
+
+<Note>
+  External drag sources must use the same `dndType` as the tree component.
+</Note>
+
+## Copy on Drop Outside
+
+Prevent nodes from being removed when dropped outside the tree:
+
+```jsx
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  shouldCopyOnOutsideDrop={true}
+/>
+
+// Or with conditional logic
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  shouldCopyOnOutsideDrop={({ node, prevPath, prevTreeIndex }) => {
+    // Only copy nodes marked as templates
+    return node.isTemplate === true;
+  }}
+/>
+```
+
+## Scroll Configuration
+
+Control scrolling behavior during drag operations:
+
+```jsx
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  
+  // Size of the scroll trigger region at edges (default: 100)
+  slideRegionSize={80}
+/>
+```
+
+## Performance Optimization Tips
+
+<Tip>
+  **For optimal performance with large trees:**
+  
+  1. **Keep virtualization enabled** - `isVirtualized={true}` (default)
+  2. **Use stable node keys** - Prefer `node.id` over `treeIndex`
+  3. **Memoize callbacks** - Use `useCallback` for event handlers
+  4. **Avoid expensive operations in `generateNodeProps`** - Keep it simple
+  5. **Batch state updates** - Update tree data once per operation
+  6. **Consider lazy loading** - Load children on expand for very large trees
+</Tip>
+
+```jsx
+import React, { useState, useCallback, useMemo } from 'react';
+
+const OptimizedTree = () => {
+  const [treeData, setTreeData] = useState(largeTreeData);
+
+  // Memoize event handlers
+  const handleChange = useCallback((newTreeData) => {
+    setTreeData(newTreeData);
+  }, []);
+
+  const handleMoveNode = useCallback((data) => {
+    console.log('Node moved:', data.node.title);
+    // Perform any side effects here
+  }, []);
+
+  // Memoize expensive calculations
+  const generateNodeProps = useCallback(
+    ({ node, isSearchMatch }) => ({
+      style: {
+        backgroundColor: isSearchMatch ? '#fff9c4' : 'transparent',
+      },
+      // Only render buttons for visible nodes
+      buttons: node.showActions
+        ? [
+            <button key="edit" onClick={() => console.log('Edit', node.id)}>
+              ✏️
+            </button>,
+          ]
+        : undefined,
+    }),
+    []
+  );
+
+  return (
+    <div style={{ height: 600 }}>
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={handleChange}
+        getNodeKey={({ node }) => node.id}
+        onMoveNode={handleMoveNode}
+        generateNodeProps={generateNodeProps}
+        isVirtualized={true}
+      />
+    </div>
+  );
+};
+```
+
+## Measuring Performance
+
+Monitor tree performance with React DevTools Profiler:
+
+```jsx
+import { Profiler } from 'react';
+
+const onRenderCallback = (id, phase, actualDuration) => {
+  console.log(`${id} (${phase}) took ${actualDuration}ms`);
+};
+
+<Profiler id="TreePerformance" onRender={onRenderCallback}>
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+  />
+</Profiler>
+```
+
+## Large Tree Example
+
+Working with thousands of nodes:
+
+```jsx
+import React, { useState, useMemo } from 'react';
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+// Generate large tree data
+const generateLargeTree = (depth, childrenPerNode, prefix = '') => {
+  if (depth === 0) return [];
+  
+  return Array.from({ length: childrenPerNode }, (_, i) => ({
+    id: `${prefix}${i}`,
+    title: `Node ${prefix}${i}`,
+    expanded: depth === 3, // Expand top levels
+    children: generateLargeTree(depth - 1, childrenPerNode, `${prefix}${i}-`),
+  }));
+};
+
+const LargeTree = () => {
+  // Generate 3 levels with 10 nodes each = 1,110 total nodes
+  const initialTreeData = useMemo(
+    () => generateLargeTree(3, 10),
+    []
+  );
+  
+  const [treeData, setTreeData] = useState(initialTreeData);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  return (
+    <div>
+      <input
+        type="text"
+        placeholder="Search 1,110 nodes..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        style={{ width: '100%', padding: '8px', marginBottom: '16px' }}
+      />
+      
+      <div style={{ height: 600 }}>
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+          searchQuery={searchQuery}
+          searchMethod={({ node, searchQuery }) => {
+            return String(node.title)
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase());
+          }}
+          isVirtualized={true}
+          rowHeight={50}
+        />
+      </div>
+    </div>
+  );
+};
+```
+
+## Next Steps
+
+- [API Reference](/api-reference/component-props) - Complete prop reference
+- [Helper Functions](/api-reference/helper-functions) - Utility functions for tree manipulation
+- [TypeScript Support](/api-reference/typescript) - Type definitions and examples

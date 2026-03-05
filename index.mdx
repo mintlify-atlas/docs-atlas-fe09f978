@@ -1,97 +1,314 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "React Apple Tree Documentation"
+description: "Build beautiful drag-and-drop hierarchical tree structures with React"
+mode: "custom"
 ---
 
-## Setting up
+<div className="relative overflow-hidden bg-gradient-to-br from-[#34C759] via-[#30D158] to-[#32D74B] py-20 dark:from-[#1a4d2e] dark:via-[#2d5a3f] dark:to-[#1f5235]">
+  <div className="absolute inset-0 bg-black/10 dark:bg-black/20"></div>
+  <div className="relative max-w-7xl mx-auto px-6 lg:px-8">
+    <div className="lg:grid lg:grid-cols-12 lg:gap-8 items-center">
+      <div className="lg:col-span-7">
+        <h1 className="text-5xl lg:text-6xl font-bold text-white mb-6">
+          React Apple Tree
+        </h1>
+        <p className="text-xl lg:text-2xl text-white/90 mb-8 max-w-2xl">
+          A powerful React component for building drag-and-drop sortable hierarchical trees with search, virtualization, and full TypeScript support.
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <a
+            href="/quickstart"
+            className="inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white bg-black/20 border-2 border-white/30 rounded-lg hover:bg-black/30 hover:border-white/50 transition-all"
+          >
+            Get Started →
+          </a>
+          <a
+            href="/api/react-apple-tree"
+            className="inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white bg-white/10 border-2 border-white/20 rounded-lg hover:bg-white/20 hover:border-white/40 transition-all"
+          >
+            View API Reference
+          </a>
+        </div>
+      </div>
+      <div className="hidden lg:block lg:col-span-5">
+        <div className="relative">
+          <div className="absolute -inset-4 bg-white/10 rounded-2xl blur-xl"></div>
+          <div className="relative bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-white/90">
+                <div className="w-3 h-3 rounded-full bg-white/50"></div>
+                <div className="h-4 bg-white/30 rounded w-32"></div>
+              </div>
+              <div className="ml-6 space-y-2">
+                <div className="flex items-center gap-2 text-white/80">
+                  <div className="w-2 h-2 rounded-full bg-white/40"></div>
+                  <div className="h-3 bg-white/25 rounded w-28"></div>
+                </div>
+                <div className="flex items-center gap-2 text-white/80">
+                  <div className="w-2 h-2 rounded-full bg-white/40"></div>
+                  <div className="h-3 bg-white/25 rounded w-24"></div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-white/90">
+                <div className="w-3 h-3 rounded-full bg-white/50"></div>
+                <div className="h-4 bg-white/30 rounded w-28"></div>
+              </div>
+              <div className="ml-6 space-y-2">
+                <div className="flex items-center gap-2 text-white/80">
+                  <div className="w-2 h-2 rounded-full bg-white/40"></div>
+                  <div className="h-3 bg-white/25 rounded w-32"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="text-center mb-12">
+    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      Quick Start
+    </h2>
+    <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+      Get up and running with React Apple Tree in minutes
+    </p>
+  </div>
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+  <Steps>
+    <Step title="Install the package">
+      Install React Apple Tree using your preferred package manager:
 
-## Make it yours
+      <CodeGroup>
+      ```bash npm
+      npm install @newtonschool/react-apple-tree
+      ```
 
-Design a docs site that looks great and empowers your users.
+      ```bash yarn
+      yarn add @newtonschool/react-apple-tree
+      ```
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
+      ```bash pnpm
+      pnpm add @newtonschool/react-apple-tree
+      ```
+      </CodeGroup>
+    </Step>
+
+    <Step title="Import the component">
+      Import ReactAppleTree into your React component:
+
+      ```tsx
+      import React, { useState } from 'react';
+      import ReactAppleTree from '@newtonschool/react-apple-tree';
+      ```
+    </Step>
+
+    <Step title="Create your first tree">
+      Set up your tree data and render the component:
+
+      ```tsx
+      const MyTree = () => {
+        const [treeData, setTreeData] = useState([
+          { title: 'Parent 1', children: [{ title: 'Child 1' }] },
+          { title: 'Parent 2', children: [{ title: 'Child 2' }] },
+        ]);
+
+        return (
+          <div style={{ height: 400 }}>
+            <ReactAppleTree
+              treeData={treeData}
+              onChange={(newTreeData) => setTreeData(newTreeData)}
+              getNodeKey={({ treeIndex }) => treeIndex}
+            />
+          </div>
+        );
+      };
+      ```
+
+      <Note>
+        The tree requires a fixed height container to enable virtualization for optimal performance with large datasets.
+      </Note>
+    </Step>
+  </Steps>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="text-center mb-12">
+    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      Explore by Topic
+    </h2>
+    <p className="text-lg text-gray-600 dark:text-gray-400">
+      Dive deeper into React Apple Tree's capabilities
+    </p>
+  </div>
+
+  <CardGroup cols={2}>
     <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
+      title="Core Concepts"
+      icon="book-open"
+      href="/concepts/component-overview"
+    >
+      Understand tree data structures, operations, and drag-and-drop mechanics
+    </Card>
+    <Card
+      title="Examples"
+      icon="code"
+      href="/examples/basic-usage"
+    >
+      Explore practical examples from basic usage to advanced features
+    </Card>
+    <Card
+      title="Props Reference"
+      icon="sliders"
+      href="/api/props/required-props"
+    >
+      Complete reference for all component props and configuration options
+    </Card>
+    <Card
+      title="Utility Functions"
+      icon="wrench"
+      href="/api/utils/tree-traversal"
+    >
+      Powerful utilities for tree traversal, manipulation, and data conversion
+    </Card>
+  </CardGroup>
+</div>
 
-## Create beautiful pages
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="text-center mb-12">
+    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      Key Features
+    </h2>
+    <p className="text-lg text-gray-600 dark:text-gray-400">
+      Everything you need for building hierarchical tree interfaces
+    </p>
+  </div>
 
-Everything you need to create world-class documentation.
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="p-6 rounded-xl border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="w-12 h-12 rounded-lg bg-[#34C759]/10 dark:bg-[#34C759]/20 flex items-center justify-center mb-4">
+        <span className="text-2xl">🎯</span>
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        Drag & Drop
+      </h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Built on React DnD for smooth, intuitive drag-and-drop interactions
+      </p>
+    </div>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+    <div className="p-6 rounded-xl border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="w-12 h-12 rounded-lg bg-[#34C759]/10 dark:bg-[#34C759]/20 flex items-center justify-center mb-4">
+        <span className="text-2xl">⚡</span>
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        Virtualized
+      </h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Handle thousands of nodes efficiently with react-window virtualization
+      </p>
+    </div>
 
-## Need inspiration?
+    <div className="p-6 rounded-xl border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="w-12 h-12 rounded-lg bg-[#34C759]/10 dark:bg-[#34C759]/20 flex items-center justify-center mb-4">
+        <span className="text-2xl">🔍</span>
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        Search & Filter
+      </h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Built-in search with customizable methods and focus management
+      </p>
+    </div>
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+    <div className="p-6 rounded-xl border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="w-12 h-12 rounded-lg bg-[#34C759]/10 dark:bg-[#34C759]/20 flex items-center justify-center mb-4">
+        <span className="text-2xl">📘</span>
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        TypeScript
+      </h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Full TypeScript support with comprehensive type definitions
+      </p>
+    </div>
+
+    <div className="p-6 rounded-xl border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="w-12 h-12 rounded-lg bg-[#34C759]/10 dark:bg-[#34C759]/20 flex items-center justify-center mb-4">
+        <span className="text-2xl">🎨</span>
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        Customizable
+      </h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Flexible styling and rendering with custom node components
+      </p>
+    </div>
+
+    <div className="p-6 rounded-xl border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="w-12 h-12 rounded-lg bg-[#34C759]/10 dark:bg-[#34C759]/20 flex items-center justify-center mb-4">
+        <span className="text-2xl">🌍</span>
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        RTL Support
+      </h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Right-to-left layout support for internationalization
+      </p>
+    </div>
+  </div>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="text-center mb-12">
+    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      Resources
+    </h2>
+    <p className="text-lg text-gray-600 dark:text-gray-400">
+      Everything you need to succeed with React Apple Tree
+    </p>
+  </div>
+
+  <CardGroup cols={3}>
+    <Card
+      title="GitHub"
+      icon="github"
+      href="https://github.com/Newton-School/react-apple-tree"
+    >
+      View source code, report issues, and contribute
+    </Card>
+    <Card
+      title="npm Package"
+      icon="box"
+      href="https://www.npmjs.com/package/@newtonschool/react-apple-tree"
+    >
+      Install from npm and view package details
+    </Card>
+    <Card
+      title="Storybook"
+      icon="book"
+      href="https://react-apple-tree.newtonschool.co/"
+    >
+      Explore interactive examples and demos
+    </Card>
+  </CardGroup>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="rounded-2xl bg-gradient-to-br from-[#34C759] to-[#30D158] dark:from-[#1a4d2e] dark:to-[#2d5a3f] p-8 lg:p-12 text-center">
+    <h2 className="text-3xl font-bold text-white mb-4">
+      Ready to get started?
+    </h2>
+    <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
+      Follow our quickstart guide to build your first tree in minutes
+    </p>
+    <a
+      href="/quickstart"
+      className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-[#34C759] bg-white rounded-lg hover:bg-gray-50 transition-colors"
+    >
+      Get Started →
+    </a>
+  </div>
+</div>

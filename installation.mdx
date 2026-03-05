@@ -1,0 +1,190 @@
+---
+title: Installation
+description: Install React Apple Tree and set up your development environment
+---
+
+## Package Installation
+
+Install React Apple Tree using your preferred package manager:
+
+<CodeGroup>
+
+```bash npm
+npm install @newtonschool/react-apple-tree
+```
+
+```bash yarn
+yarn add @newtonschool/react-apple-tree
+```
+
+```bash pnpm
+pnpm add @newtonschool/react-apple-tree
+```
+
+</CodeGroup>
+
+## Peer Dependencies
+
+React Apple Tree requires the following peer dependencies to be installed in your project:
+
+<CodeGroup>
+
+```bash npm
+npm install react react-dom styled-components
+```
+
+```bash yarn
+yarn add react react-dom styled-components
+```
+
+```bash pnpm
+pnpm add react react-dom styled-components
+```
+
+</CodeGroup>
+
+### Required Versions
+
+Make sure your project has these minimum versions:
+
+- **react**: ^18.3.1 or higher
+- **react-dom**: ^18.3.1 or higher
+- **styled-components**: ^6.1.13 or higher
+
+<Note>
+  React Apple Tree is built for React 18+. If you're using an older version of React, you may encounter compatibility issues.
+</Note>
+
+## TypeScript Setup
+
+React Apple Tree includes built-in TypeScript declarations. No additional type packages are required.
+
+The package exports types you can use in your TypeScript projects:
+
+```typescript
+import ReactAppleTree, { 
+  ReactAppleTreeProps,
+  TreeItem,
+  NodeData,
+  OnChangeFn,
+  GetNodeKeyFn
+} from '@newtonschool/react-apple-tree';
+```
+
+### Type Definitions
+
+The main types you'll work with:
+
+```typescript
+type TreeItem<T = {}> = T & {
+  id?: string | number;
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
+  expanded?: boolean;
+  children?: Array<TreeItem<T>>;
+};
+
+type OnChangeFn<T> = (treeData: Array<TreeItem<T>>) => void;
+
+type GetNodeKeyFn<T = {}> = (
+  data: { node: TreeItem<T>; treeIndex: number }
+) => string | number;
+```
+
+<Tip>
+  You can extend `TreeItem<T>` with your own custom properties by using the generic type parameter.
+</Tip>
+
+## Verification
+
+Verify your installation by creating a simple test component:
+
+```jsx
+import React, { useState } from 'react';
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+function TestTree() {
+  const [treeData, setTreeData] = useState([
+    { title: 'Test Node' }
+  ]);
+
+  return (
+    <div style={{ height: 300 }}>
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.title}
+      />
+    </div>
+  );
+}
+
+export default TestTree;
+```
+
+If you see a single node labeled "Test Node" that you can interact with, your installation is successful!
+
+## Import Options
+
+React Apple Tree provides two import options:
+
+### Default Import (With DnD Context)
+
+The default export includes the react-dnd context provider:
+
+```jsx
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+// Use directly - DnD context is included
+<ReactAppleTree treeData={data} onChange={setData} getNodeKey={getKey} />
+```
+
+<Note>
+  This is the recommended approach for most use cases.
+</Note>
+
+### Named Import (Without DnD Context)
+
+If you need to provide your own DnD context (for example, when using multiple trees with drag-and-drop between them):
+
+```jsx
+import { ReactAppleTreeWithoutDndContext } from '@newtonschool/react-apple-tree';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
+function App() {
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <ReactAppleTreeWithoutDndContext
+        treeData={data}
+        onChange={setData}
+        getNodeKey={getKey}
+      />
+    </DndProvider>
+  );
+}
+```
+
+<Warning>
+  Only use `ReactAppleTreeWithoutDndContext` if you need custom DnD context management. Most applications should use the default import.
+</Warning>
+
+## Bundle Size
+
+React Apple Tree is optimized for production use:
+
+- The package uses tree-shaking to minimize bundle size
+- react-window provides efficient virtualization
+- styled-components allows for dynamic styling without CSS-in-JS overhead
+
+<Tip>
+  Check the [npm package page](https://www.npmjs.com/package/@newtonschool/react-apple-tree) for current bundle size information.
+</Tip>
+
+## Next Steps
+
+Now that you have React Apple Tree installed, let's build your first tree:
+
+<Card title="Quick Start Guide" icon="play" href="/quickstart">
+  Follow our step-by-step guide to create your first interactive tree
+</Card>

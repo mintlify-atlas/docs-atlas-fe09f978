@@ -1,0 +1,447 @@
+---
+title: Tree Data Structure
+description: Understanding the TreeItem interface and how to structure your tree data
+---
+
+## TreeItem Interface
+
+The core data structure in React Apple Tree is the `TreeItem` interface, which represents a single node in the tree.
+
+### Basic Structure
+
+```typescript src/types.ts
+export type TreeItem<T = {}> = T & {
+  id?: NodeKey;                              // Optional unique identifier
+  title?: React.ReactNode | undefined;       // Main content to display
+  subtitle?: React.ReactNode | undefined;    // Secondary content
+  expanded?: boolean | undefined;            // Expansion state
+  children?: Array<TreeItem<T>> | undefined; // Nested children
+};
+
+export type NodeKey = string | number;
+```
+
+<Info>
+The `TreeItem` type is generic, allowing you to extend it with custom properties via the type parameter `T`.
+</Info>
+
+## Required Properties
+
+### Unique Keys
+
+While the `id` field is optional, **you must provide a `getNodeKey` function** to extract unique keys from your nodes:
+
+```tsx
+<ReactAppleTree
+  treeData={data}
+  getNodeKey={({ node, treeIndex }) => node.id || treeIndex}
+  onChange={setData}
+/>
+```
+
+<Warning>
+Node keys must be unique across the entire tree. Duplicate keys will cause rendering and drag-and-drop issues.
+</Warning>
+
+## Optional Properties
+
+### title
+
+The primary content displayed for the node. Can be any React node:
+
+```tsx
+const node = {
+  id: '1',
+  title: 'Simple Text'
+};
+
+// Or with JSX
+const nodeWithIcon = {
+  id: '2',
+  title: (
+    <span>
+      <Icon name="folder" /> My Folder
+    </span>
+  )
+};
+```
+
+### subtitle
+
+Secondary content displayed below the title:
+
+```tsx
+const node = {
+  id: '1',
+  title: 'Document.pdf',
+  subtitle: 'Modified 2 hours ago'
+};
+```
+
+### expanded
+
+Controls whether the node's children are visible:
+
+```tsx
+const node = {
+  id: '1',
+  title: 'Parent',
+  expanded: true,  // Children will be visible
+  children: [
+    { id: '1-1', title: 'Child' }
+  ]
+};
+```
+
+<Note>
+If `expanded` is not specified, nodes default to collapsed state.
+</Note>
+
+### children
+
+An array of child `TreeItem` nodes. Can be nested to any depth:
+
+```tsx
+const node = {
+  id: '1',
+  title: 'Root',
+  children: [
+    {
+      id: '1-1',
+      title: 'Level 1',
+      children: [
+        {
+          id: '1-1-1',
+          title: 'Level 2'
+        }
+      ]
+    }
+  ]
+};
+```
+
+## Extended Types
+
+### Custom Properties
+
+Extend `TreeItem` with your own properties using the generic parameter:
+
+```tsx
+interface FileNode {
+  fileSize: number;
+  mimeType: string;
+  createdAt: Date;
+  permissions: string[];
+}
+
+const fileTree: Array<TreeItem<FileNode>> = [
+  {
+    id: '1',
+    title: 'document.pdf',
+    fileSize: 1024000,
+    mimeType: 'application/pdf',
+    createdAt: new Date(),
+    permissions: ['read', 'write']
+  }
+];
+
+<ReactAppleTree<FileNode>
+  treeData={fileTree}
+  getNodeKey={({ node }) => node.id!}
+  onChange={setFileTree}
+  generateNodeProps={({ node }) => ({
+    subtitle: () => `${node.fileSize} bytes - ${node.mimeType}`
+  })}
+/>
+```
+
+## Node Paths
+
+Internally, React Apple Tree uses **paths** to identify node positions:
+
+```typescript
+export type NumberOrStringArray = Array<string | number>;
+
+// Example path: ['1', '1-1', '1-1-2']
+// Represents: Root → First Child → Second Grandchild
+```
+
+<Tabs>
+  <Tab title="Path Representation">
+    Paths are arrays of node keys from root to the target node:
+    
+    ```typescript
+    const tree = [
+      {
+        id: 'root',
+        children: [
+          {
+            id: 'child1',
+            children: [
+              { id: 'grandchild1' }  // Path: ['root', 'child1', 'grandchild1']
+            ]
+          }
+        ]
+      }
+    ];
+    ```
+  </Tab>
+  
+  <Tab title="Using Paths">
+    Many utility functions accept paths to target specific nodes:
+    
+    ```typescript
+    import { getNodeAtPath, changeNodeAtPath } from 'react-apple-tree';
+    
+    const nodeInfo = getNodeAtPath({
+      treeData,
+      path: ['root', 'child1', 'grandchild1'],
+      getNodeKey: ({ node }) => node.id
+    });
+    
+    const updatedTree = changeNodeAtPath({
+      treeData,
+      path: ['root', 'child1'],
+      newNode: { ...existingNode, title: 'Updated' },
+      getNodeKey: ({ node }) => node.id
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Data Structure Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep nodes immutable">
+    Always create new objects when updating nodes:
+    
+    ```tsx
+    // Good
+    const updatedTree = treeData.map(node => 
+      node.id === targetId 
+        ? { ...node, title: 'Updated' }
+        : node
+    );
+    
+    // Bad - mutates original
+    treeData[0].title = 'Updated';
+    ```
+  </Accordion>
+  
+  <Accordion title="Use meaningful keys">
+    Prefer stable, semantic IDs over array indices:
+    
+    ```tsx
+    // Good
+    const node = { id: 'user-123', title: 'John Doe' };
+    
+    // Bad - indices can change
+    getNodeKey={({ treeIndex }) => treeIndex}
+    ```
+  </Accordion>
+  
+  <Accordion title="Initialize expanded state">
+    Set `expanded: true` for nodes that should start open:
+    
+    ```tsx
+    const defaultTree = [
+      {
+        id: 'root',
+        title: 'Root',
+        expanded: true,  // Start expanded
+        children: [...]
+      }
+    ];
+    ```
+  </Accordion>
+  
+  <Accordion title="Handle empty children arrays">
+    Distinguish between no children and empty children array:
+    
+    ```tsx
+    // Leaf node (no children property)
+    { id: '1', title: 'File' }
+    
+    // Parent with no children yet (empty array)
+    { id: '2', title: 'Empty Folder', children: [] }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Nested vs Flat Data
+
+### Nested Structure (Recommended)
+
+The tree component expects data in nested format:
+
+```typescript
+const nestedTree: TreeItem[] = [
+  {
+    id: '1',
+    title: 'Parent',
+    children: [
+      { id: '1-1', title: 'Child' },
+      { id: '1-2', title: 'Child 2' }
+    ]
+  }
+];
+```
+
+### Flat Structure
+
+If your data is flat with parent references, convert it using the provided utility:
+
+```typescript
+import { getTreeFromFlatData } from 'react-apple-tree';
+
+const flatData = [
+  { id: '1', parentId: null, title: 'Root' },
+  { id: '1-1', parentId: '1', title: 'Child' },
+  { id: '1-2', parentId: '1', title: 'Child 2' },
+  { id: '1-1-1', parentId: '1-1', title: 'Grandchild' }
+];
+
+const nestedTree = getTreeFromFlatData({
+  flatData,
+  getKey: (node) => node.id,
+  getParentKey: (node) => node.parentId,
+  rootKey: null  // Use null for root nodes
+});
+```
+
+### Converting Back to Flat
+
+To convert tree data back to flat structure:
+
+```typescript
+import { getFlatDataFromTree } from 'react-apple-tree';
+
+const flatData = getFlatDataFromTree({
+  treeData,
+  getNodeKey: ({ node }) => node.id,
+  ignoreCollapsed: false  // Include all nodes, even collapsed
+});
+
+// Result: Array of { node, path, treeIndex }
+```
+
+## Internal Representations
+
+React Apple Tree maintains two internal structures for performance:
+
+### TreeMap
+
+```typescript
+export type TreeMap = Record<NodeKey, TreeItem>;
+
+// Example:
+// {
+//   '1': { id: '1', title: 'Root', ... },
+//   '1-1': { id: '1-1', title: 'Child', ... }
+// }
+```
+
+<Info>
+Provides O(1) node lookup by key during drag-and-drop and updates.
+</Info>
+
+### FlatTree
+
+```typescript
+export type FlatTreeItem = {
+  mapId: NodeKey;           // Reference to node in TreeMap
+  path: NumberOrStringArray; // Path from root
+  parentKey: NodeKey | null; // Parent node key
+  
+  // Transient properties for drag-and-drop
+  draggingNode?: boolean;
+  dropSuccessNode?: boolean;
+  dropErrorNode?: boolean;
+  forcedDepth?: number;
+};
+```
+
+<Info>
+Array of visible nodes in render order. Only includes expanded nodes for efficient rendering.
+</Info>
+
+## Example: Complex Tree
+
+```tsx
+interface ProjectNode {
+  type: 'folder' | 'file';
+  color?: string;
+  locked?: boolean;
+  metadata?: Record<string, any>;
+}
+
+const projectTree: Array<TreeItem<ProjectNode>> = [
+  {
+    id: 'root',
+    title: 'My Project',
+    expanded: true,
+    type: 'folder',
+    children: [
+      {
+        id: 'src',
+        title: 'src',
+        expanded: true,
+        type: 'folder',
+        color: 'blue',
+        children: [
+          {
+            id: 'index.tsx',
+            title: 'index.tsx',
+            type: 'file',
+            locked: false,
+            metadata: {
+              lines: 245,
+              language: 'typescript'
+            }
+          },
+          {
+            id: 'App.tsx',
+            title: 'App.tsx',
+            type: 'file',
+            metadata: {
+              lines: 180,
+              language: 'typescript'
+            }
+          }
+        ]
+      },
+      {
+        id: 'package.json',
+        title: 'package.json',
+        type: 'file',
+        locked: true
+      }
+    ]
+  }
+];
+
+<ReactAppleTree<ProjectNode>
+  treeData={projectTree}
+  getNodeKey={({ node }) => node.id!}
+  onChange={setProjectTree}
+  canDrag={({ node }) => !node.locked}
+  generateNodeProps={({ node }) => ({
+    style: node.color ? { color: node.color } : undefined,
+    buttons: node.type === 'file' ? [
+      <Button key="edit">Edit</Button>
+    ] : undefined
+  })}
+/>
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Tree Operations" icon="code" href="/concepts/tree-operations">
+    Learn how to add, remove, and update nodes
+  </Card>
+  
+  <Card title="Utility Functions" icon="wrench" href="/api-reference/utility-functions">
+    Explore all available tree manipulation functions
+  </Card>
+</CardGroup>

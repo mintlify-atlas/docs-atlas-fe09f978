@@ -1,0 +1,487 @@
+---
+title: "Data Conversion Functions"
+description: "Functions for converting between flat and nested tree data structures"
+---
+
+## Overview
+
+Data conversion functions allow you to transform between flat (database-style) data and nested tree structures. This is essential when working with data from databases or APIs that store hierarchical data in flat tables.
+
+## getTreeFromFlatData
+
+Convert flat data (like from a database) into nested tree data.
+
+<ParamField path="flatData" type="Array<TreeItem<T>>" required>
+  The flat array of items to convert
+</ParamField>
+
+<ParamField path="getKey" type="GetFlatNodeKeyFn<T>" default="(node) => node.id">
+  Function to get the unique key of each item
+</ParamField>
+
+<ParamField path="getParentKey" type="GetFlatNodeKeyFn<T>" default="(node) => node.parentId">
+  Function to get the parent key of each item
+</ParamField>
+
+<ParamField path="rootKey" type="NodeKey" default="'0'">
+  The key value that identifies root-level items
+</ParamField>
+
+<ResponseField name="return" type="Array<TreeItem<T>>">
+  Nested tree data structure
+</ResponseField>
+
+### Example
+
+```typescript
+import { getTreeFromFlatData } from '@newtonschool/react-apple-tree';
+
+// Flat data from database
+interface FlatNode {
+  id: string;
+  parentId: string | null;
+  title: string;
+  type: string;
+}
+
+const flatData: FlatNode[] = [
+  { id: '1', parentId: null, title: 'Root 1', type: 'folder' },
+  { id: '2', parentId: '1', title: 'Child 1-1', type: 'file' },
+  { id: '3', parentId: '1', title: 'Child 1-2', type: 'file' },
+  { id: '4', parentId: null, title: 'Root 2', type: 'folder' },
+  { id: '5', parentId: '4', title: 'Child 2-1', type: 'folder' },
+  { id: '6', parentId: '5', title: 'Child 2-1-1', type: 'file' },
+];
+
+// Convert to tree structure
+const treeData = getTreeFromFlatData({
+  flatData,
+  getKey: (node) => node.id,
+  getParentKey: (node) => node.parentId || '0',
+  rootKey: '0',
+});
+
+// Result:
+// [
+//   {
+//     id: '1',
+//     title: 'Root 1',
+//     type: 'folder',
+//     children: [
+//       { id: '2', title: 'Child 1-1', type: 'file' },
+//       { id: '3', title: 'Child 1-2', type: 'file' },
+//     ]
+//   },
+//   {
+//     id: '4',
+//     title: 'Root 2',
+//     type: 'folder',
+//     children: [
+//       {
+//         id: '5',
+//         title: 'Child 2-1',
+//         type: 'folder',
+//         children: [
+//           { id: '6', title: 'Child 2-1-1', type: 'file' }
+//         ]
+//       }
+//     ]
+//   }
+// ]
+```
+
+### Database Integration
+
+```typescript
+// Fetch from database
+interface DbRow {
+  id: number;
+  parent_id: number | null;
+  name: string;
+  created_at: Date;
+}
+
+const fetchTreeData = async (): Promise<TreeItem[]> => {
+  const rows: DbRow[] = await db.query(
+    'SELECT id, parent_id, name, created_at FROM nodes ORDER BY parent_id, name'
+  );
+
+  return getTreeFromFlatData({
+    flatData: rows.map(row => ({
+      id: row.id.toString(),
+      parentId: row.parent_id?.toString() || null,
+      title: row.name,
+      created_at: row.created_at,
+    })),
+    getKey: (node) => node.id,
+    getParentKey: (node) => node.parentId || 'root',
+    rootKey: 'root',
+  });
+};
+```
+
+### Different Root Key
+
+```typescript
+// Using '0' as root key (default)
+const treeData1 = getTreeFromFlatData({
+  flatData,
+  getKey: (node) => node.id,
+  getParentKey: (node) => node.parentId || '0',
+  rootKey: '0', // Items with parentId='0' are root
+});
+
+// Using null as root key
+const treeData2 = getTreeFromFlatData({
+  flatData,
+  getKey: (node) => node.id,
+  getParentKey: (node) => node.parentId,
+  rootKey: null, // Items with parentId=null are root
+});
+
+// Using 'root' as root key
+const treeData3 = getTreeFromFlatData({
+  flatData,
+  getKey: (node) => node.id,
+  getParentKey: (node) => node.parentKey || 'root',
+  rootKey: 'root',
+});
+```
+
+<Tip>
+Use the same `rootKey` value that your database uses to identify root-level items. Common values are `null`, `'0'`, or `'root'`.
+</Tip>
+
+---
+
+## getFlatDataFromTree
+
+Convert nested tree data back to a flat array.
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The nested tree data to flatten
+</ParamField>
+
+<ParamField path="getNodeKey" type="GetNodeKeyFn<T>" required>
+  Function to get the unique key of each node
+</ParamField>
+
+<ParamField path="ignoreCollapsed" type="boolean" default="true">
+  Whether to exclude collapsed nodes and their children
+</ParamField>
+
+<ResponseField name="return" type="Array<TreeNode<T>>">
+  Flat array of nodes with their path information
+</ResponseField>
+
+### Example
+
+```typescript
+import { getFlatDataFromTree } from '@newtonschool/react-apple-tree';
+
+const treeData = [
+  {
+    id: '1',
+    title: 'Parent',
+    children: [
+      { id: '2', title: 'Child 1' },
+      { id: '3', title: 'Child 2' },
+    ],
+  },
+];
+
+const flatData = getFlatDataFromTree({
+  treeData,
+  getNodeKey: ({ node }) => node.id,
+  ignoreCollapsed: false, // Include all nodes
+});
+
+// Result:
+// [
+//   { node: { id: '1', title: 'Parent', ... } },
+//   { node: { id: '2', title: 'Child 1' } },
+//   { node: { id: '3', title: 'Child 2' } },
+// ]
+```
+
+### Export to CSV
+
+```typescript
+import { getFlatDataFromTree } from '@newtonschool/react-apple-tree';
+
+const exportToCSV = (treeData: TreeItem[]) => {
+  const flatData = getFlatDataFromTree({
+    treeData,
+    getNodeKey: ({ node }) => node.id,
+    ignoreCollapsed: false,
+  });
+
+  const csv = flatData.map(({ node }) => 
+    `"${node.id}","${node.title}","${node.type}"`
+  ).join('\n');
+
+  const header = 'ID,Title,Type\n';
+  return header + csv;
+};
+
+// Download CSV
+const handleExport = () => {
+  const csv = exportToCSV(treeData);
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tree-data.csv';
+  a.click();
+};
+```
+
+### Save to Database
+
+```typescript
+import { getFlatDataFromTree, walk } from '@newtonschool/react-apple-tree';
+
+const saveTreeToDatabase = async (treeData: TreeItem[]) => {
+  const records: any[] = [];
+
+  walk({
+    treeData,
+    getNodeKey: ({ node }) => node.id,
+    callback: ({ node, path, parentNode }) => {
+      records.push({
+        id: node.id,
+        parent_id: parentNode?.id || null,
+        title: node.title,
+        position: path.length - 1, // Depth level
+      });
+    },
+    ignoreCollapsed: false,
+  });
+
+  // Batch insert to database
+  await db.insertMany('nodes', records);
+};
+```
+
+<Note>
+The returned flat data includes only the `node` property. Use the `walk` function if you need additional information like path, parentNode, or treeIndex.
+</Note>
+
+---
+
+## getNodeAtPath
+
+Get the node at a specific path in the tree.
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The tree data to search
+</ParamField>
+
+<ParamField path="path" type="NumberOrStringArray" required>
+  The path to the node (array of node keys)
+</ParamField>
+
+<ParamField path="getNodeKey" type="GetNodeKeyFn<T>" required>
+  Function to get the unique key of each node
+</ParamField>
+
+<ParamField path="ignoreCollapsed" type="boolean" default="true">
+  Whether to search through collapsed nodes
+</ParamField>
+
+<ResponseField name="return" type="NodeData<T> | null">
+  The node data if found, or null if not found
+</ResponseField>
+
+### Example
+
+```typescript
+import { getNodeAtPath } from '@newtonschool/react-apple-tree';
+
+// Get node at path
+const node = getNodeAtPath({
+  treeData,
+  path: ['parent-id', 'child-id', 'grandchild-id'],
+  getNodeKey: ({ node }) => node.id,
+});
+
+if (node) {
+  console.log('Found node:', node.node);
+  console.log('Tree index:', node.treeIndex);
+}
+
+// Verify node exists before operations
+const handleSelectNode = (path: string[]) => {
+  const nodeData = getNodeAtPath({
+    treeData,
+    path,
+    getNodeKey: ({ node }) => node.id,
+  });
+
+  if (nodeData) {
+    setSelectedNode(nodeData.node);
+  } else {
+    console.warn('Node not found at path:', path);
+  }
+};
+
+// Deep link to node
+const handleDeepLink = (nodeId: string) => {
+  // First, find the path to the node
+  let targetPath: string[] | null = null;
+
+  walk({
+    treeData,
+    getNodeKey: ({ node }) => node.id,
+    callback: ({ node, path }) => {
+      if (node.id === nodeId) {
+        targetPath = path;
+        return false; // Stop walking
+      }
+    },
+    ignoreCollapsed: false,
+  });
+
+  if (targetPath) {
+    const nodeData = getNodeAtPath({
+      treeData,
+      path: targetPath,
+      getNodeKey: ({ node }) => node.id,
+      ignoreCollapsed: false,
+    });
+
+    if (nodeData) {
+      // Expand path to node and scroll to it
+      expandPathToNode(targetPath);
+      scrollToNode(nodeData.treeIndex);
+    }
+  }
+};
+```
+
+---
+
+## Complete Example: Database Integration
+
+```typescript
+import React, { useState, useEffect } from 'react';
+import ReactAppleTree, {
+  getTreeFromFlatData,
+  walk,
+  getNodeAtPath,
+} from '@newtonschool/react-apple-tree';
+
+interface DbNode {
+  id: number;
+  parent_id: number | null;
+  name: string;
+  type: 'file' | 'folder';
+  created_at: Date;
+}
+
+interface TreeNode {
+  id: string;
+  title: string;
+  type: 'file' | 'folder';
+  created_at: Date;
+  children?: TreeNode[];
+}
+
+const DatabaseTreeView = () => {
+  const [treeData, setTreeData] = useState<TreeNode[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load tree from database
+  useEffect(() => {
+    const loadTree = async () => {
+      try {
+        // Fetch flat data from database
+        const response = await fetch('/api/tree-nodes');
+        const dbNodes: DbNode[] = await response.json();
+
+        // Convert to tree structure
+        const tree = getTreeFromFlatData({
+          flatData: dbNodes.map(node => ({
+            id: node.id.toString(),
+            parentId: node.parent_id?.toString() || null,
+            title: node.name,
+            type: node.type,
+            created_at: node.created_at,
+          })),
+          getKey: (node) => node.id,
+          getParentKey: (node) => node.parentId || 'root',
+          rootKey: 'root',
+        });
+
+        setTreeData(tree);
+      } catch (error) {
+        console.error('Failed to load tree:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTree();
+  }, []);
+
+  // Save tree to database
+  const handleSave = async () => {
+    const records: any[] = [];
+
+    walk({
+      treeData,
+      getNodeKey: ({ node }) => node.id,
+      callback: ({ node, parentNode }) => {
+        records.push({
+          id: parseInt(node.id),
+          parent_id: parentNode ? parseInt(parentNode.id) : null,
+          name: node.title,
+          type: node.type,
+        });
+      },
+      ignoreCollapsed: false,
+    });
+
+    try {
+      await fetch('/api/tree-nodes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(records),
+      });
+      alert('Tree saved successfully!');
+    } catch (error) {
+      console.error('Failed to save tree:', error);
+      alert('Failed to save tree');
+    }
+  };
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <div>
+      <button onClick={handleSave}>Save to Database</button>
+      
+      <div style={{ height: 600, marginTop: 10 }}>
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default DatabaseTreeView;
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Tree Traversal" icon="route" href="/api/utils/tree-traversal">
+    Walk through and iterate over tree nodes
+  </Card>
+  <Card title="Tree Manipulation" icon="edit" href="/api/utils/tree-manipulation">
+    Add, remove, and update nodes in the tree
+  </Card>
+</CardGroup>

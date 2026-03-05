@@ -1,0 +1,506 @@
+---
+title: "Tree Manipulation Functions"
+description: "Functions for adding, removing, and updating nodes in tree structures"
+---
+
+## Overview
+
+Tree manipulation functions allow you to modify tree data in various ways. These functions create new tree data structures rather than mutating the original data, following React's immutability principles.
+
+## addNodeUnderParent
+
+Add a new node as a child of a parent node.
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The current tree data
+</ParamField>
+
+<ParamField path="newNode" type="TreeItem<T>" required>
+  The node to add
+</ParamField>
+
+<ParamField path="parentKey" type="NodeKey | null" required>
+  The key of the parent node, or null to add at root level
+</ParamField>
+
+<ParamField path="getNodeKey" type="GetNodeKeyFn<T>" required>
+  Function to get the unique key of each node
+</ParamField>
+
+<ParamField path="ignoreCollapsed" type="boolean" default="true">
+  Whether to skip collapsed nodes when searching for parent
+</ParamField>
+
+<ParamField path="expandParent" type="boolean" default="false">
+  Whether to automatically expand the parent node
+</ParamField>
+
+<ParamField path="addAsFirstChild" type="boolean" default="false">
+  Whether to add as the first child (true) or last child (false)
+</ParamField>
+
+<ResponseField name="return" type="{ treeData: Array<TreeItem<T>>, treeIndex: number | null }">
+  New tree data with the node added, and the tree index where it was inserted
+</ResponseField>
+
+### Example
+
+```typescript
+import { addNodeUnderParent } from '@newtonschool/react-apple-tree';
+
+// Add a node at root level
+const { treeData: newTree, treeIndex } = addNodeUnderParent({
+  treeData: currentTree,
+  newNode: { id: 'new-1', title: 'New Root Node' },
+  parentKey: null, // null means root level
+  getNodeKey: ({ node }) => node.id,
+});
+
+// Add a child node
+const result = addNodeUnderParent({
+  treeData: currentTree,
+  newNode: { id: 'child-1', title: 'New Child' },
+  parentKey: 'parent-id',
+  getNodeKey: ({ node }) => node.id,
+  expandParent: true, // Expand parent to show new child
+});
+
+// Add as first child
+const resultFirst = addNodeUnderParent({
+  treeData: currentTree,
+  newNode: { id: 'first-child', title: 'First Child' },
+  parentKey: 'parent-id',
+  getNodeKey: ({ node }) => node.id,
+  addAsFirstChild: true,
+});
+
+// Complete example with state update
+const handleAddChild = (parentKey: string) => {
+  const newNode = {
+    id: `node-${Date.now()}`,
+    title: 'New Node',
+    type: 'item',
+  };
+
+  const { treeData: updatedTree } = addNodeUnderParent({
+    treeData,
+    newNode,
+    parentKey,
+    getNodeKey: ({ node }) => node.id,
+    expandParent: true,
+  });
+
+  setTreeData(updatedTree);
+};
+```
+
+<Tip>
+Set `expandParent: true` when adding nodes to ensure the user can see the newly added node immediately.
+</Tip>
+
+---
+
+## removeNode
+
+Remove a node at a specific path and return the updated tree data along with information about the removed node.
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The current tree data
+</ParamField>
+
+<ParamField path="path" type="NumberOrStringArray" required>
+  The path to the node to remove
+</ParamField>
+
+<ParamField path="getNodeKey" type="GetNodeKeyFn<T>" required>
+  Function to get the unique key of each node
+</ParamField>
+
+<ParamField path="ignoreCollapsed" type="boolean" default="true">
+  Whether to skip collapsed nodes when finding the path
+</ParamField>
+
+<ResponseField name="return" type="{ treeData: Array<TreeItem<T>>, node: TreeItem<T> | null, treeIndex: number | null }">
+  Updated tree data, the removed node, and its tree index
+</ResponseField>
+
+### Example
+
+```typescript
+import { removeNode } from '@newtonschool/react-apple-tree';
+
+const handleDelete = (path: NumberOrStringArray) => {
+  const { treeData: updatedTree, node: removedNode } = removeNode({
+    treeData,
+    path,
+    getNodeKey: ({ node }) => node.id,
+  });
+
+  if (removedNode) {
+    console.log('Removed node:', removedNode.title);
+    setTreeData(updatedTree);
+  }
+};
+
+// With undo functionality
+const [history, setHistory] = useState<TreeItem[][]>([treeData]);
+
+const handleDeleteWithUndo = (path: NumberOrStringArray) => {
+  const result = removeNode({
+    treeData,
+    path,
+    getNodeKey: ({ node }) => node.id,
+  });
+
+  if (result.node) {
+    setTreeData(result.treeData);
+    setHistory([...history, result.treeData]);
+  }
+};
+```
+
+---
+
+## removeNodeAtPath
+
+Remove a node at a specific path (simpler version that just returns updated tree data).
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The current tree data
+</ParamField>
+
+<ParamField path="path" type="NumberOrStringArray" required>
+  The path to the node to remove
+</ParamField>
+
+<ParamField path="getNodeKey" type="GetNodeKeyFn<T>" required>
+  Function to get the unique key of each node
+</ParamField>
+
+<ParamField path="ignoreCollapsed" type="boolean" default="true">
+  Whether to skip collapsed nodes when finding the path
+</ParamField>
+
+<ResponseField name="return" type="Array<TreeItem<T>>">
+  Updated tree data with the node removed
+</ResponseField>
+
+### Example
+
+```typescript
+import { removeNodeAtPath } from '@newtonschool/react-apple-tree';
+
+const updatedTree = removeNodeAtPath({
+  treeData,
+  path: ['parent-id', 'child-id'],
+  getNodeKey: ({ node }) => node.id,
+});
+
+setTreeData(updatedTree);
+```
+
+---
+
+## changeNodeAtPath
+
+Update or replace a node at a specific path.
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The current tree data
+</ParamField>
+
+<ParamField path="path" type="NumberOrStringArray" required>
+  The path to the node to change
+</ParamField>
+
+<ParamField path="newNode" type="TreeItem<T> | ((data: NodeData<T>) => TreeItem<T> | null) | null" required>
+  The new node, or a function that returns the new node, or null to remove the node
+</ParamField>
+
+<ParamField path="getNodeKey" type="GetNodeKeyFn<T>" required>
+  Function to get the unique key of each node
+</ParamField>
+
+<ParamField path="ignoreCollapsed" type="boolean" default="true">
+  Whether to skip collapsed nodes when finding the path
+</ParamField>
+
+<ResponseField name="return" type="Array<TreeItem<T>>">
+  Updated tree data with the node changed
+</ResponseField>
+
+### Example
+
+```typescript
+import { changeNodeAtPath } from '@newtonschool/react-apple-tree';
+
+// Replace a node completely
+const updatedTree = changeNodeAtPath({
+  treeData,
+  path: ['parent-id', 'child-id'],
+  newNode: { id: 'child-id', title: 'Updated Title', type: 'updated' },
+  getNodeKey: ({ node }) => node.id,
+});
+
+// Update a node using a function
+const toggledTree = changeNodeAtPath({
+  treeData,
+  path,
+  newNode: ({ node }) => ({
+    ...node,
+    expanded: !node.expanded,
+  }),
+  getNodeKey: ({ node }) => node.id,
+});
+
+// Update node title
+const handleRename = (path: NumberOrStringArray, newTitle: string) => {
+  const updatedTree = changeNodeAtPath({
+    treeData,
+    path,
+    newNode: ({ node }) => ({
+      ...node,
+      title: newTitle,
+    }),
+    getNodeKey: ({ node }) => node.id,
+  });
+  
+  setTreeData(updatedTree);
+};
+
+// Mark node as favorite
+const handleToggleFavorite = (path: NumberOrStringArray) => {
+  const updatedTree = changeNodeAtPath({
+    treeData,
+    path,
+    newNode: ({ node }) => ({
+      ...node,
+      isFavorite: !node.isFavorite,
+    }),
+    getNodeKey: ({ node }) => node.id,
+  });
+  
+  setTreeData(updatedTree);
+};
+```
+
+<Note>
+If the callback function returns `null`, the node will be removed from the tree.
+</Note>
+
+---
+
+## insertNode
+
+Insert a node at a specific depth and tree index.
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The current tree data
+</ParamField>
+
+<ParamField path="depth" type="number" required>
+  The depth level to insert at (0 = root)
+</ParamField>
+
+<ParamField path="minimumTreeIndex" type="number" required>
+  The minimum tree index position
+</ParamField>
+
+<ParamField path="newNode" type="TreeItem<T>" required>
+  The node to insert
+</ParamField>
+
+<ParamField path="getNodeKey" type="GetNodeKeyFn<T>" required>
+  Function to get the unique key of each node
+</ParamField>
+
+<ParamField path="ignoreCollapsed" type="boolean" default="true">
+  Whether to skip collapsed nodes
+</ParamField>
+
+<ParamField path="expandParent" type="boolean" default="false">
+  Whether to automatically expand the parent node
+</ParamField>
+
+<ResponseField name="return" type="{ treeData: Array<TreeItem<T>>, treeIndex: number | null, path: NumberOrStringArray, parentNode: TreeItem<T> | null }">
+  Updated tree data with insertion details
+</ResponseField>
+
+### Example
+
+```typescript
+import { insertNode } from '@newtonschool/react-apple-tree';
+
+// Insert at root level
+const result = insertNode({
+  treeData,
+  depth: 0,
+  minimumTreeIndex: 0,
+  newNode: { id: 'new-1', title: 'New Root' },
+  getNodeKey: ({ node }) => node.id,
+});
+
+// Insert as child at specific position
+const childResult = insertNode({
+  treeData,
+  depth: 1, // First level children
+  minimumTreeIndex: 5, // After 5th visible node
+  newNode: { id: 'new-child', title: 'New Child' },
+  getNodeKey: ({ node }) => node.id,
+  expandParent: true,
+});
+```
+
+---
+
+## toggleExpandedForAll
+
+Expand or collapse all nodes in the tree.
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The current tree data
+</ParamField>
+
+<ParamField path="expanded" type="boolean" default="true">
+  Whether to expand (true) or collapse (false) all nodes
+</ParamField>
+
+<ResponseField name="return" type="Array<TreeItem<T>>">
+  Updated tree data with all nodes expanded or collapsed
+</ResponseField>
+
+### Example
+
+```typescript
+import { toggleExpandedForAll } from '@newtonschool/react-apple-tree';
+
+// Expand all nodes
+const handleExpandAll = () => {
+  const expandedTree = toggleExpandedForAll({
+    treeData,
+    expanded: true,
+  });
+  setTreeData(expandedTree);
+};
+
+// Collapse all nodes
+const handleCollapseAll = () => {
+  const collapsedTree = toggleExpandedForAll({
+    treeData,
+    expanded: false,
+  });
+  setTreeData(collapsedTree);
+};
+
+// Toggle all
+const [allExpanded, setAllExpanded] = useState(false);
+
+const handleToggleAll = () => {
+  const newTree = toggleExpandedForAll({
+    treeData,
+    expanded: !allExpanded,
+  });
+  setTreeData(newTree);
+  setAllExpanded(!allExpanded);
+};
+```
+
+---
+
+## Complete Example
+
+```typescript
+import React, { useState } from 'react';
+import ReactAppleTree, {
+  addNodeUnderParent,
+  removeNode,
+  changeNodeAtPath,
+  toggleExpandedForAll,
+} from '@newtonschool/react-apple-tree';
+
+interface MyNode {
+  id: string;
+  title: string;
+  children?: MyNode[];
+}
+
+const TreeWithActions = () => {
+  const [treeData, setTreeData] = useState<MyNode[]>([/* ... */]);
+
+  const handleAddNode = (parentKey: string | null) => {
+    const { treeData: newTree } = addNodeUnderParent({
+      treeData,
+      newNode: {
+        id: `node-${Date.now()}`,
+        title: 'New Node',
+      },
+      parentKey,
+      getNodeKey: ({ node }) => node.id,
+      expandParent: true,
+    });
+    setTreeData(newTree);
+  };
+
+  const handleRemoveNode = (path: string[]) => {
+    const { treeData: newTree } = removeNode({
+      treeData,
+      path,
+      getNodeKey: ({ node }) => node.id,
+    });
+    setTreeData(newTree);
+  };
+
+  const handleRename = (path: string[], newTitle: string) => {
+    const newTree = changeNodeAtPath({
+      treeData,
+      path,
+      newNode: ({ node }) => ({ ...node, title: newTitle }),
+      getNodeKey: ({ node }) => node.id,
+    });
+    setTreeData(newTree);
+  };
+
+  const handleExpandAll = () => {
+    setTreeData(toggleExpandedForAll({ treeData, expanded: true }));
+  };
+
+  const handleCollapseAll = () => {
+    setTreeData(toggleExpandedForAll({ treeData, expanded: false }));
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom: 10 }}>
+        <button onClick={() => handleAddNode(null)}>Add Root</button>
+        <button onClick={handleExpandAll}>Expand All</button>
+        <button onClick={handleCollapseAll}>Collapse All</button>
+      </div>
+      
+      <div style={{ height: 400 }}>
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+          generateNodeProps={({ node, path }) => ({
+            buttons: [
+              <button onClick={() => handleAddNode(node.id)}>+</button>,
+              <button onClick={() => handleRemoveNode(path)}>×</button>,
+            ],
+          })}
+        />
+      </div>
+    </div>
+  );
+};
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Tree Traversal" icon="route" href="/api/utils/tree-traversal">
+    Walk through and iterate over tree nodes
+  </Card>
+  <Card title="Data Conversion" icon="arrows-rotate" href="/api/utils/data-conversion">
+    Convert between flat and nested structures
+  </Card>
+</CardGroup>

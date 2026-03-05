@@ -1,0 +1,352 @@
+---
+title: "Tree Traversal Functions"
+description: "Functions for walking and iterating through tree structures"
+---
+
+## Overview
+
+Tree traversal functions allow you to iterate through and visit nodes in the tree. These functions are essential for reading tree data, performing calculations, and gathering information about tree structure.
+
+## walk
+
+Walk through every node in the tree and execute a callback function.
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The tree data to walk through
+</ParamField>
+
+<ParamField path="getNodeKey" type="GetNodeKeyFn<T>" required>
+  Function to get the unique key of each node
+</ParamField>
+
+<ParamField path="callback" type="(data: NodeData<T>) => void" required>
+  Function to execute for each node. Receives node, path, treeIndex, lowerSiblingCounts, and parentNode
+</ParamField>
+
+<ParamField path="ignoreCollapsed" type="boolean" default="true">
+  Whether to skip collapsed nodes and their children
+</ParamField>
+
+### Example
+
+```typescript
+import { walk } from '@newtonschool/react-apple-tree';
+
+// Count all nodes
+let count = 0;
+walk({
+  treeData,
+  getNodeKey: ({ treeIndex }) => treeIndex,
+  callback: () => {
+    count++;
+  },
+});
+
+// Find all nodes matching a condition
+const matchingNodes: NodeData<MyData>[] = [];
+walk({
+  treeData,
+  getNodeKey: ({ node }) => node.id,
+  callback: ({ node, path, treeIndex }) => {
+    if (node.type === 'folder') {
+      matchingNodes.push({ node, path, treeIndex });
+    }
+  },
+});
+
+// Calculate total file size
+let totalSize = 0;
+walk({
+  treeData: fileTree,
+  getNodeKey: ({ node }) => node.id,
+  callback: ({ node }) => {
+    if (node.size) {
+      totalSize += node.size;
+    }
+  },
+});
+```
+
+<Tip>
+The `walk` function performs a depth-first traversal, visiting parent nodes before their children.
+</Tip>
+
+---
+
+## map
+
+Transform every node in the tree by applying a callback function, returning a new tree.
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The tree data to transform
+</ParamField>
+
+<ParamField path="getNodeKey" type="GetNodeKeyFn<T>" required>
+  Function to get the unique key of each node
+</ParamField>
+
+<ParamField path="callback" type="(data: NodeData<T>) => TreeItem<T>" required>
+  Function to transform each node. Must return a new node object
+</ParamField>
+
+<ParamField path="ignoreCollapsed" type="boolean" default="true">
+  Whether to skip collapsed nodes and their children
+</ParamField>
+
+<ResponseField name="return" type="Array<TreeItem<T>>">
+  New tree data with transformed nodes
+</ResponseField>
+
+### Example
+
+```typescript
+import { map } from '@newtonschool/react-apple-tree';
+
+// Add a timestamp to all nodes
+const timestampedTree = map({
+  treeData,
+  getNodeKey: ({ node }) => node.id,
+  callback: ({ node }) => ({
+    ...node,
+    updatedAt: Date.now(),
+  }),
+  ignoreCollapsed: false, // Transform all nodes, even collapsed ones
+});
+
+// Convert titles to uppercase
+const uppercaseTree = map({
+  treeData,
+  getNodeKey: ({ treeIndex }) => treeIndex,
+  callback: ({ node }) => ({
+    ...node,
+    title: typeof node.title === 'string' 
+      ? node.title.toUpperCase() 
+      : node.title,
+  }),
+});
+
+// Add depth level to each node
+const treeWithDepth = map({
+  treeData,
+  getNodeKey: ({ node }) => node.id,
+  callback: ({ node, path }) => ({
+    ...node,
+    depth: path.length,
+  }),
+});
+```
+
+<Warning>
+Always return a new node object from the callback. Mutating the original node will cause issues.
+</Warning>
+
+---
+
+## getVisibleNodeInfoAtIndex
+
+Get information about the visible node at a specific index in the tree.
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The tree data to search
+</ParamField>
+
+<ParamField path="index" type="number" required>
+  The target index (0-based) of the visible node
+</ParamField>
+
+<ParamField path="getNodeKey" type="GetNodeKeyFn<T>" required>
+  Function to get the unique key of each node
+</ParamField>
+
+<ResponseField name="return" type="NodeData<T> | null">
+  Object containing node, path, treeIndex, and lowerSiblingCounts, or null if not found
+</ResponseField>
+
+### Example
+
+```typescript
+import { getVisibleNodeInfoAtIndex } from '@newtonschool/react-apple-tree';
+
+// Get the 5th visible node
+const nodeInfo = getVisibleNodeInfoAtIndex({
+  treeData,
+  index: 4, // 0-based index
+  getNodeKey: ({ node }) => node.id,
+});
+
+if (nodeInfo) {
+  console.log('Node:', nodeInfo.node);
+  console.log('Path:', nodeInfo.path);
+  console.log('Tree Index:', nodeInfo.treeIndex);
+}
+
+// Scroll to a specific node index
+const scrollToIndex = (index: number) => {
+  const info = getVisibleNodeInfoAtIndex({
+    treeData,
+    index,
+    getNodeKey: ({ node }) => node.id,
+  });
+  
+  if (info) {
+    // Use the info to scroll or highlight the node
+    highlightNode(info.node);
+  }
+};
+```
+
+<Note>
+This function only considers visible (expanded) nodes. Collapsed nodes are not counted in the index.
+</Note>
+
+---
+
+## getVisibleNodeCount
+
+Count the total number of visible nodes in the tree.
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The tree data to count
+</ParamField>
+
+<ResponseField name="return" type="number">
+  The total count of visible nodes
+</ResponseField>
+
+### Example
+
+```typescript
+import { getVisibleNodeCount } from '@newtonschool/react-apple-tree';
+
+const visibleCount = getVisibleNodeCount({ treeData });
+console.log(`Showing ${visibleCount} of ${totalNodes} nodes`);
+
+// Show progress
+const totalNodes = getTotalNodeCount(treeData); // Custom function
+const visibleNodes = getVisibleNodeCount({ treeData });
+const collapsedNodes = totalNodes - visibleNodes;
+
+console.log(`${visibleNodes} visible, ${collapsedNodes} hidden`);
+```
+
+---
+
+## getDescendantCount
+
+Count how many descendants a specific node has.
+
+<ParamField path="node" type="TreeItem<T>" required>
+  The node to count descendants for
+</ParamField>
+
+<ParamField path="ignoreCollapsed" type="boolean" default="true">
+  Whether to exclude collapsed descendants from the count
+</ParamField>
+
+<ResponseField name="return" type="number">
+  The number of descendants
+</ResponseField>
+
+### Example
+
+```typescript
+import { getDescendantCount } from '@newtonschool/react-apple-tree';
+
+const node = treeData[0];
+
+// Count only visible descendants
+const visibleDescendants = getDescendantCount({
+  node,
+  ignoreCollapsed: true,
+});
+
+// Count all descendants, including collapsed
+const totalDescendants = getDescendantCount({
+  node,
+  ignoreCollapsed: false,
+});
+
+console.log(`Node has ${visibleDescendants} visible descendants`);
+console.log(`Node has ${totalDescendants} total descendants`);
+
+// Show folder size
+const folderSize = getDescendantCount({
+  node: folderNode,
+  ignoreCollapsed: false,
+});
+console.log(`Folder contains ${folderSize} items`);
+```
+
+---
+
+## Complete Example
+
+```typescript
+import {
+  walk,
+  map,
+  getVisibleNodeCount,
+  getVisibleNodeInfoAtIndex,
+  getDescendantCount,
+} from '@newtonschool/react-apple-tree';
+
+interface FileNode {
+  id: string;
+  title: string;
+  type: 'file' | 'folder';
+  size?: number;
+  children?: FileNode[];
+}
+
+const fileTree: FileNode[] = [/* ... */];
+
+// Count visible nodes
+const visibleCount = getVisibleNodeCount({ treeData: fileTree });
+
+// Calculate total file size
+let totalSize = 0;
+walk({
+  treeData: fileTree,
+  getNodeKey: ({ node }) => node.id,
+  callback: ({ node }) => {
+    if (node.type === 'file' && node.size) {
+      totalSize += node.size;
+    }
+  },
+});
+
+// Add file counts to folders
+const treeWithCounts = map({
+  treeData: fileTree,
+  getNodeKey: ({ node }) => node.id,
+  callback: ({ node }) => {
+    if (node.type === 'folder') {
+      const count = getDescendantCount({ node, ignoreCollapsed: false });
+      return {
+        ...node,
+        subtitle: `${count} items`,
+      };
+    }
+    return node;
+  },
+  ignoreCollapsed: false,
+});
+
+// Get the 10th visible file
+const tenthNode = getVisibleNodeInfoAtIndex({
+  treeData: fileTree,
+  index: 9,
+  getNodeKey: ({ node }) => node.id,
+});
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Tree Manipulation" icon="edit" href="/api/utils/tree-manipulation">
+    Add, remove, and update nodes in the tree
+  </Card>
+  <Card title="Data Conversion" icon="arrows-rotate" href="/api/utils/data-conversion">
+    Convert between flat and nested tree structures
+  </Card>
+</CardGroup>

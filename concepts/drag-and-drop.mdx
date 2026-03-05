@@ -1,0 +1,699 @@
+---
+title: Drag and Drop
+description: Understanding and customizing drag-and-drop behavior in React Apple Tree
+---
+
+## Overview
+
+React Apple Tree uses [React DnD](https://react-dnd.github.io/react-dnd/) to provide powerful drag-and-drop functionality. Nodes can be dragged within the tree or between different trees.
+
+## React DnD Integration
+
+### Architecture
+
+The drag-and-drop system is built on React DnD with a custom context layer:
+
+```typescript src/contexts/DNDContext.tsx
+interface DNDContextProps {
+  isDraggingNode: boolean | null;
+  draggingNodeInformation: DraggingNodeInformation | null;
+  dropzoneInformation: DropZoneInformation | null;
+  startDrag: (params: StartDragProps) => void;
+  onHoverNode: (params: OnHoverNodeProps) => void;
+  completeDrop: (isDroppedOutsideTree?: boolean) => void;
+}
+```
+
+<Info>
+The `DNDContext` manages drag state, drop zones, and validates drop operations.
+</Info>
+
+### DnD Backend
+
+By default, React Apple Tree uses the HTML5 Backend:
+
+```tsx src/ReactAppleTree.tsx
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
+export default function ReactAppleTree<T>(props) {
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <ReactAppleTreeWithoutDndContext {...props} />
+    </DndProvider>
+  );
+}
+```
+
+<Warning>
+If you already have a `DndProvider` in your app, use `ReactAppleTreeWithoutDndContext` to avoid nested providers.
+</Warning>
+
+## Drag Hooks
+
+### useDragHook
+
+Internal hook that makes nodes draggable:
+
+```typescript src/hooks/dnd/useDragHook.ts
+function useDragHook({ nodeIndex, listNode, dndType }) {
+  const [{ isDragging }, dragRef, dragPreview] = useDrag({
+    type: dndType || DEFAULT_DND_TYPE,
+    item: {
+      nodeIndex,
+      listNode,
+      draggingNodeInformation: {
+        treeNode,
+        flatNode,
+        dragStartIndex: nodeIndex,
+        dragStartDepth: calculateNodeDepth(flatNode),
+        initialExpanded: treeNode.expanded,
+        externalDrag: true  // Flag for external drops
+      }
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging()
+    })
+  });
+
+  return { isDragging, dragRef, dragPreview };
+}
+```
+
+### useDropHook
+
+Internal hook that makes nodes accept drops:
+
+```typescript src/hooks/dnd/useDropHook.ts
+function useDropHook({ nodeIndex, listNode, nodeElement, dndType, onHoverNode, completeDrop }) {
+  const [{ isOver }, dropRef] = useDrop({
+    accept: dndType || DEFAULT_DND_TYPE,
+    drop: () => {
+      completeDrop();
+    },
+    hover(item, monitor) {
+      const clientOffset = monitor.getClientOffset();
+      const targetRect = nodeElement.current.getBoundingClientRect();
+      
+      // Calculate depth based on horizontal offset
+      const offsetX = clientOffset.x - targetRect.left;
+      const depth = Math.floor(offsetX / scaffoldBlockPxWidth);
+      
+      // Calculate direction based on vertical offset
+      const offsetY = clientOffset.y - targetRect.top;
+      const direction = offsetY < targetRect.height / 2 
+        ? NodeAppendDirection.Below 
+        : NodeAppendDirection.Above;
+      
+      onHoverNode({ depth, direction, nodeIndex, flatNode: listNode });
+    }
+  });
+
+  return { isOver, dropRef };
+}
+```
+
+## Controlling Drag Behavior
+
+### canDrag
+
+Control which nodes can be dragged:
+
+```tsx
+// Boolean: All nodes can/cannot drag
+<ReactAppleTree
+  treeData={data}
+  onChange={setData}
+  getNodeKey={({ node }) => node.id}
+  canDrag={true}  // or false to disable all dragging
+/>
+
+// Function: Conditional dragging
+<ReactAppleTree
+  treeData={data}
+  onChange={setData}
+  getNodeKey={({ node }) => node.id}
+  canDrag={({ node, path, treeIndex, parentNode }) => {
+    // Prevent dragging root nodes
+    if (path.length === 1) return false;
+    
+    // Prevent dragging locked nodes
+    if (node.locked) return false;
+    
+    // Prevent dragging system folders
+    if (node.type === 'system') return false;
+    
+    return true;
+  }}
+/>
+```
+
+<ParamField path="node" type="TreeItem<T>">
+  The node being checked
+</ParamField>
+
+<ParamField path="path" type="NumberOrStringArray">
+  Path from root to the node
+</ParamField>
+
+<ParamField path="treeIndex" type="number">
+  Index of the node in the visible tree
+</ParamField>
+
+<ParamField path="parentNode" type="TreeItem<T> | undefined">
+  The parent node (undefined for root nodes)
+</ParamField>
+
+<ParamField path="lowerSiblingCounts" type="number[]">
+  Number of siblings below each ancestor
+</ParamField>
+
+## Controlling Drop Behavior
+
+### canDrop
+
+Validate whether a drop operation should be allowed:
+
+```tsx
+<ReactAppleTree
+  treeData={data}
+  onChange={setData}
+  getNodeKey={({ node }) => node.id}
+  canDrop={({
+    node,           // Node being dropped
+    nextParent,     // Proposed new parent
+    prevParent,     // Previous parent
+    prevPath,       // Previous path
+    nextPath,       // Proposed new path
+    prevTreeIndex,
+    nextTreeIndex
+  }) => {
+    // Prevent dropping folders into files
+    if (nextParent && nextParent.type === 'file') {
+      return false;
+    }
+    
+    // Prevent creating deeply nested structures
+    if (nextPath.length > 5) {
+      return false;
+    }
+    
+    // Prevent moving system files
+    if (node.system) {
+      return false;
+    }
+    
+    return true;
+  }}
+/>
+```
+
+<Info>
+`canDrop` is called during hover to provide visual feedback. Return `false` to show a red drop zone indicator.
+</Info>
+
+### canNodeHaveChildren
+
+Control which nodes can accept children:
+
+```tsx
+// Boolean: All nodes can/cannot have children
+<ReactAppleTree
+  canNodeHaveChildren={true}
+  // ...
+/>
+
+// Function: Conditional children
+<ReactAppleTree
+  canNodeHaveChildren={(node) => {
+    // Only folders can have children
+    return node.type === 'folder';
+  }}
+  // ...
+/>
+```
+
+## DnD Type for External Drops
+
+### dndType
+
+Set a custom drag-and-drop type to enable drops from external sources:
+
+```tsx
+// Tree 1: File explorer
+<ReactAppleTree
+  treeData={fileTree}
+  onChange={setFileTree}
+  getNodeKey={({ node }) => node.id}
+  dndType="FILE_ITEM"
+/>
+
+// Tree 2: Trash bin (can accept files)
+<ReactAppleTree
+  treeData={trashTree}
+  onChange={setTrashTree}
+  getNodeKey={({ node }) => node.id}
+  dndType="FILE_ITEM"  // Same type = can accept drops
+/>
+
+// External drop target
+import { useDrop } from 'react-dnd';
+
+function ExternalDropZone() {
+  const [{ isOver }, dropRef] = useDrop({
+    accept: 'FILE_ITEM',
+    drop: (item) => {
+      console.log('Dropped file:', item.draggingNodeInformation.treeNode);
+    }
+  });
+  
+  return <div ref={dropRef}>Drop files here</div>;
+}
+```
+
+<Tabs>
+  <Tab title="Same Tree">
+    Default type allows dragging within the same tree:
+    ```tsx
+    <ReactAppleTree
+      treeData={data}
+      onChange={setData}
+      getNodeKey={({ node }) => node.id}
+      // dndType defaults to "REACT_APPLE_TREE_ITEM"
+    />
+    ```
+  </Tab>
+  
+  <Tab title="Between Trees">
+    Same `dndType` allows dragging between trees:
+    ```tsx
+    <ReactAppleTree
+      treeData={sourceTree}
+      onChange={setSourceTree}
+      getNodeKey={({ node }) => node.id}
+      dndType="MY_CUSTOM_TYPE"
+    />
+    
+    <ReactAppleTree
+      treeData={targetTree}
+      onChange={setTargetTree}
+      getNodeKey={({ node }) => node.id}
+      dndType="MY_CUSTOM_TYPE"
+    />
+    ```
+  </Tab>
+  
+  <Tab title="External Sources">
+    Accept drops from custom drag sources:
+    ```tsx
+    import { useDrag } from 'react-dnd';
+    
+    function CustomDragItem() {
+      const [, dragRef] = useDrag({
+        type: 'MY_CUSTOM_TYPE',
+        item: {
+          draggingNodeInformation: {
+            treeNode: { id: 'new', title: 'New Item' },
+            externalDrag: true
+          }
+        }
+      });
+      
+      return <div ref={dragRef}>Drag me to tree</div>;
+    }
+    
+    <ReactAppleTree
+      dndType="MY_CUSTOM_TYPE"
+      // ...
+    />
+    ```
+  </Tab>
+</Tabs>
+
+## shouldCopyOnOutsideDrop
+
+Control whether nodes are copied or moved when dropped outside the tree:
+
+```tsx
+// Boolean: Always copy (or always move)
+<ReactAppleTree
+  treeData={data}
+  onChange={setData}
+  getNodeKey={({ node }) => node.id}
+  shouldCopyOnOutsideDrop={true}  // Copy on external drop
+/>
+
+// Function: Conditional copy/move
+<ReactAppleTree
+  treeData={data}
+  onChange={setData}
+  getNodeKey={({ node }) => node.id}
+  shouldCopyOnOutsideDrop={({ node, prevPath, prevTreeIndex }) => {
+    // Copy template nodes, move regular nodes
+    return node.isTemplate === true;
+  }}
+/>
+```
+
+<Info>
+**Copy (true)**: Node remains in the tree and is duplicated to the drop target
+
+**Move (false)**: Node is removed from the tree and added to the drop target
+</Info>
+
+## Drag Lifecycle
+
+### Drag Start
+
+When a drag operation begins:
+
+```tsx
+<ReactAppleTree
+  treeData={data}
+  onChange={setData}
+  getNodeKey={({ node }) => node.id}
+  onDragStateChanged={({ isDragging, draggedNode }) => {
+    if (isDragging) {
+      console.log('Started dragging:', draggedNode.title);
+      setDraggingState(true);
+    }
+  }}
+/>
+```
+
+<Steps>
+  <Step title="User clicks drag handle">
+    The drag operation is initiated on the node
+  </Step>
+  
+  <Step title="startDrag is called">
+    ```typescript
+    function startDrag(params: StartDragProps) {
+      const flatNode = flatTree[params.nodeIndex];
+      const treeNode = treeMap[flatNode.mapId];
+      
+      // Store dragging node information
+      setDraggingNodeInformation({
+        treeNode,
+        flatNode,
+        dragStartIndex: params.nodeIndex,
+        dragStartDepth: calculateNodeDepth(flatNode),
+        initialExpanded: treeNode.expanded
+      });
+      
+      // Collapse the dragging node
+      const flatArray = collapseNode(flatNode.mapId, treeNode, treeMap, flatTree);
+      setFlatTree([...flatArray]);
+      setIsDraggingNode(true);
+    }
+    ```
+  </Step>
+  
+  <Step title="onDragStateChanged fires">
+    Callback is invoked with `isDragging: true`
+  </Step>
+</Steps>
+
+### Drag Hover
+
+As the cursor hovers over potential drop targets:
+
+```typescript
+function onHoverNode(params: OnHoverNodeProps) {
+  // Calculate temporary drop position
+  let hoverDropIndex = calculateTempDropIndex(params);
+  
+  // Remove dragging node placeholder if it exists
+  [hoverDropIndex, newFlatList] = removeDragggingNodeIfExists(
+    hoverDropIndex,
+    newFlatList,
+    draggingNodeInformation
+  );
+  
+  // Calculate actual drop depth (respecting maxDepth, canNodeHaveChildren)
+  const hoverDropDepth = calculateActualDropDepth(
+    hoverDropIndex,
+    tmpDropDepth,
+    newTreeMap,
+    newFlatList,
+    draggingNodeInformation,
+    dropzoneInformation,
+    canNodeHaveChildren
+  );
+  
+  // Check canDrop validation
+  let canDrop = true;
+  if (canDropFn) {
+    canDrop = canDropFn(nodeMoveData);
+  }
+  
+  // Create dropzone indicator
+  newFlatList = constructDropzone(
+    hoverDropIndex,
+    hoverDropDepth,
+    canDrop,
+    newFlatList,
+    draggingNodeInformation
+  );
+  
+  // Update UI
+  setFlatTree([...newFlatList]);
+  setDropzoneInformation({ /* ... */ });
+}
+```
+
+<Info>
+The drop zone indicator shows a visual preview of where the node will be placed. Green indicates a valid drop, red indicates `canDrop` returned false.
+</Info>
+
+### Drop Complete
+
+When the node is dropped:
+
+```tsx
+<ReactAppleTree
+  treeData={data}
+  onChange={setData}
+  getNodeKey={({ node }) => node.id}
+  onMoveNode={({
+    node,          // The moved node
+    treeData,      // Updated tree data
+    prevPath,      // Previous path
+    nextPath,      // New path
+    prevTreeIndex,
+    nextTreeIndex,
+    nextParentNode // New parent (null for root)
+  }) => {
+    console.log(`Moved ${node.title} from`, prevPath, 'to', nextPath);
+    
+    // Save to backend
+    api.moveNode(node.id, nextParentNode?.id);
+  }}
+/>
+```
+
+<Steps>
+  <Step title="User releases mouse">
+    Drop event is triggered
+  </Step>
+  
+  <Step title="completeDrop is called">
+    ```typescript
+    function completeDrop(isDroppedOutsideTree: boolean = false) {
+      if (isDroppedOutsideTree) {
+        newTree = appleTreeProps.treeData;  // No change
+      } else {
+        newTree = moveNodeToDifferentParent(
+          appleTreeProps.treeData,
+          treeMap,
+          draggingNodeInformation.flatNode.mapId,
+          draggingNodeInformation.flatNode.parentKey,
+          dropzoneInformation.nextParentKey,
+          dropzoneInformation.siblingIndex,
+          appleTreeProps.getNodeKey
+        );
+      }
+      
+      // Restore original expansion state
+      if (draggingNodeInformation.initialExpanded) {
+        draggingNodeInformation.treeNode.expanded = true;
+      }
+      
+      // Fire callback
+      appleTreeProps.onMoveNode?.({
+        ...dropzoneInformation.nodeMoveData,
+        treeData: newTree,
+        nextParentNode: dropzoneInformation.nodeMoveData.nextParent
+      });
+      
+      setAppleTreeProps({ treeData: [...newTree] });
+      setDraggingNodeInformation(null);
+      setIsDraggingNode(false);
+    }
+    ```
+  </Step>
+  
+  <Step title="onChange is called">
+    Component receives the updated tree data
+  </Step>
+  
+  <Step title="onMoveNode fires">
+    Callback receives move details
+  </Step>
+</Steps>
+
+## Customizing Drag Behavior
+
+### Visual Feedback
+
+Customize the drag preview and drop indicators:
+
+```tsx
+<ReactAppleTree
+  treeData={data}
+  onChange={setData}
+  getNodeKey={({ node }) => node.id}
+  generateNodeProps={({ node, isDragging }) => ({
+    style: {
+      opacity: isDragging ? 0.5 : 1,
+      backgroundColor: isDragging ? '#e3f2fd' : 'transparent'
+    }
+  })}
+  placeholderRenderer={({ isOver, canDrop, draggedNode }) => (
+    <div
+      style={{
+        height: 4,
+        backgroundColor: canDrop ? '#4caf50' : '#f44336',
+        opacity: isOver ? 1 : 0.5
+      }}
+    >
+      {!canDrop && <span>Cannot drop here</span>}
+    </div>
+  )}
+/>
+```
+
+### Constrain Movement
+
+Limit where nodes can be moved:
+
+```tsx
+<ReactAppleTree
+  treeData={data}
+  onChange={setData}
+  getNodeKey={({ node }) => node.id}
+  maxDepth={5}  // Maximum nesting depth
+  canDrop={({ node, nextPath, nextParent }) => {
+    // Prevent moving to root level
+    if (nextPath.length === 1) return false;
+    
+    // Prevent moving files into other files
+    if (nextParent && nextParent.type === 'file') return false;
+    
+    // Prevent moving parents into their own descendants
+    if (nextPath.some(key => key === node.id)) return false;
+    
+    return true;
+  }}
+/>
+```
+
+### Drag Handles
+
+By default, the entire node is draggable. Customize with `generateNodeProps`:
+
+```tsx
+<ReactAppleTree
+  treeData={data}
+  onChange={setData}
+  getNodeKey={({ node }) => node.id}
+  generateNodeProps={({ node }) => ({
+    buttons: [
+      <button
+        key="drag"
+        className="drag-handle"
+        style={{ cursor: 'grab' }}
+      >
+        ⋮⋮
+      </button>
+    ]
+  })}
+/>
+```
+
+## Advanced Patterns
+
+### Multi-Tree Drag and Drop
+
+```tsx
+const SHARED_DND_TYPE = 'SHARED_TREE_ITEM';
+
+function MultiTreeApp() {
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <div style={{ display: 'flex', gap: 20 }}>
+        <ReactAppleTreeWithoutDndContext
+          treeData={tree1}
+          onChange={setTree1}
+          getNodeKey={({ node }) => node.id}
+          dndType={SHARED_DND_TYPE}
+          shouldCopyOnOutsideDrop={true}
+        />
+        
+        <ReactAppleTreeWithoutDndContext
+          treeData={tree2}
+          onChange={setTree2}
+          getNodeKey={({ node }) => node.id}
+          dndType={SHARED_DND_TYPE}
+        />
+      </div>
+    </DndProvider>
+  );
+}
+```
+
+### Undo/Redo with Drag Operations
+
+```tsx
+function TreeWithUndo() {
+  const [history, setHistory] = useState([initialTree]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const currentTree = history[currentIndex];
+  
+  const handleChange = (newTree) => {
+    const newHistory = history.slice(0, currentIndex + 1);
+    setHistory([...newHistory, newTree]);
+    setCurrentIndex(currentIndex + 1);
+  };
+  
+  return (
+    <>
+      <button onClick={() => setCurrentIndex(currentIndex - 1)} disabled={currentIndex === 0}>
+        Undo
+      </button>
+      <button onClick={() => setCurrentIndex(currentIndex + 1)} disabled={currentIndex === history.length - 1}>
+        Redo
+      </button>
+      
+      <ReactAppleTree
+        treeData={currentTree}
+        onChange={handleChange}
+        getNodeKey={({ node }) => node.id}
+      />
+    </>
+  );
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Component Overview" icon="diagram-project" href="/concepts/component-overview">
+    Understand the component architecture
+  </Card>
+  
+  <Card title="Callbacks" icon="webhook" href="/api-reference/callbacks">
+    Complete reference for all callbacks
+  </Card>
+</CardGroup>

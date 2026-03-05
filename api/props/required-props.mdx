@@ -1,0 +1,326 @@
+---
+title: "Required Props"
+description: "Essential props that must be provided to ReactAppleTree"
+---
+
+# Required Props
+
+These props are required for ReactAppleTree to function properly. You must provide all three of these props when using the component.
+
+---
+
+## treeData
+
+<ParamField path="treeData" type="Array<TreeItem<T>>" required>
+  The array of tree items representing your hierarchical data structure.
+
+  Each `TreeItem` can contain the following properties:
+  - `title`: Primary label for the node (React.ReactNode)
+  - `subtitle`: Secondary label for the node (React.ReactNode)
+  - `expanded`: Whether children are visible (boolean, defaults to false)
+  - `children`: Array of child TreeItem nodes
+  - `id`: Optional unique identifier (string | number)
+
+  ### TypeScript Signature
+  ```typescript
+  type TreeItem<T = {}> = T & {
+    id?: NodeKey;
+    title?: React.ReactNode | undefined;
+    subtitle?: React.ReactNode | undefined;
+    expanded?: boolean | undefined;
+    children?: Array<TreeItem<T>> | undefined;
+  };
+  ```
+
+  ### Example
+  ```jsx
+  import React, { useState } from 'react';
+  import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+  function MyTree() {
+    const [treeData, setTreeData] = useState([
+      {
+        id: 1,
+        title: 'Parent Node',
+        subtitle: 'This is expandable',
+        expanded: true,
+        children: [
+          { id: 2, title: 'Child Node 1' },
+          { id: 3, title: 'Child Node 2' },
+        ],
+      },
+      {
+        id: 4,
+        title: 'Another Parent',
+        children: [
+          { id: 5, title: 'Nested Child' },
+        ],
+      },
+    ]);
+
+    return (
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+      />
+    );
+  }
+  ```
+
+  ### Custom Properties
+  You can extend `TreeItem` with custom properties using TypeScript generics:
+
+  ```tsx
+  interface MyCustomNode {
+    description: string;
+    color: string;
+    metadata: { createdAt: Date };
+  }
+
+  const treeData: Array<TreeItem<MyCustomNode>> = [
+    {
+      id: 1,
+      title: 'Custom Node',
+      description: 'Additional data',
+      color: 'blue',
+      metadata: { createdAt: new Date() },
+    },
+  ];
+  ```
+</ParamField>
+
+---
+
+## onChange
+
+<ParamField path="onChange" type="(treeData: Array<TreeItem<T>>) => void" required>
+  Callback function triggered whenever the tree data changes due to user interactions (dragging, dropping, expanding, etc.).
+
+  Just like with React input elements, you must update your component's state with the new tree data to see changes reflected in the UI.
+
+  ### TypeScript Signature
+  ```typescript
+  type OnChangeFn<T> = (treeData: Array<TreeItem<T>>) => void;
+  ```
+
+  ### Parameters
+  - `treeData`: The updated tree data structure after the change
+
+  ### Example
+  ```jsx
+  import React, { useState } from 'react';
+  import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+  function MyTree() {
+    const [treeData, setTreeData] = useState([
+      { id: 1, title: 'Node 1' },
+      { id: 2, title: 'Node 2' },
+    ]);
+
+    // Simple usage with setState
+    return (
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={setTreeData}
+        getNodeKey={({ node }) => node.id}
+      />
+    );
+  }
+  ```
+
+  ### Advanced Example with Logging
+  ```jsx
+  function MyTreeWithLogging() {
+    const [treeData, setTreeData] = useState(initialData);
+
+    const handleChange = (newTreeData) => {
+      console.log('Tree updated:', newTreeData);
+      
+      // Perform validation or side effects
+      if (newTreeData.length > 0) {
+        setTreeData(newTreeData);
+        
+        // Optionally persist to backend
+        saveToBackend(newTreeData);
+      }
+    };
+
+    return (
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={handleChange}
+        getNodeKey={({ node }) => node.id}
+      />
+    );
+  }
+  ```
+
+  ### When onChange is Called
+  - When a node is dragged and dropped to a new position
+  - When a node is moved to a different parent
+  - When nodes are reordered
+  - When nodes are added or removed programmatically
+
+  <Note>
+    The `onChange` callback is **not** called when nodes are expanded or collapsed. Use [onVisibilityToggle](/api/props/callback-props#onvisibilitytoggle) for that.
+  </Note>
+</ParamField>
+
+---
+
+## getNodeKey
+
+<ParamField path="getNodeKey" type="(data: { node: TreeItem<T>, treeIndex: number }) => string | number" required>
+  Function that returns a unique key for each node. This key is used internally to identify nodes and generate path arrays in callbacks.
+
+  The unique key helps ReactAppleTree track nodes efficiently and is crucial for callbacks to identify which node is being operated on.
+
+  ### TypeScript Signature
+  ```typescript
+  type GetNodeKeyFn<T = {}> = (
+    data: TreeNode<T> & TreeIndex
+  ) => NodeKey;
+
+  // Where:
+  type NodeKey = string | number;
+
+  interface TreeNode<T = {}> {
+    node: TreeItem<T>;
+  }
+
+  interface TreeIndex {
+    treeIndex: number;
+  }
+  ```
+
+  ### Parameters
+  - `data.node`: The tree node object
+  - `data.treeIndex`: The index of the node in the flattened tree
+
+  ### Returns
+  A unique string or number identifying the node
+
+  ### Example with ID Property
+  ```jsx
+  const treeData = [
+    { id: 'node-1', title: 'First' },
+    { id: 'node-2', title: 'Second' },
+  ];
+
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node }) => node.id}
+  />
+  ```
+
+  ### Example with Tree Index
+  If your nodes don't have unique IDs, you can use the tree index:
+
+  ```jsx
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ treeIndex }) => treeIndex}
+  />
+  ```
+
+  <Warning>
+    Using `treeIndex` as the key is not recommended if your tree structure changes frequently, as it can lead to unexpected behavior when nodes are reordered.
+  </Warning>
+
+  ### Example with Composite Key
+  ```jsx
+  // Generate key from multiple properties
+  <ReactAppleTree
+    treeData={treeData}
+    onChange={setTreeData}
+    getNodeKey={({ node, treeIndex }) => 
+      node.id ? `${node.type}-${node.id}` : treeIndex
+    }
+  />
+  ```
+
+  ### Why It's Important
+  The key returned by `getNodeKey` is used in callback props to help you identify nodes:
+
+  ```jsx
+  const handleMoveNode = ({ node, nextPath, nextParentNode }) => {
+    const nodeKey = getNodeKey({ node, treeIndex: 0 });
+    console.log(`Node ${nodeKey} was moved to path:`, nextPath);
+    
+    if (nextParentNode) {
+      const parentKey = getNodeKey({ node: nextParentNode, treeIndex: 0 });
+      console.log(`New parent is ${parentKey}`);
+    }
+  };
+  ```
+
+  ### Best Practices
+  - Always use a stable, unique identifier from your data model (e.g., database ID)
+  - Avoid using array indices as keys for dynamic trees
+  - Ensure keys remain consistent across re-renders
+  - Keys should be unique across the entire tree, not just among siblings
+</ParamField>
+
+---
+
+## Complete Example
+
+Here's a complete example using all three required props:
+
+```jsx
+import React, { useState } from 'react';
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+function FileExplorer() {
+  const [treeData, setTreeData] = useState([
+    {
+      id: 'folder-1',
+      title: 'Documents',
+      subtitle: '3 items',
+      expanded: true,
+      children: [
+        { id: 'file-1', title: 'Resume.pdf' },
+        { id: 'file-2', title: 'CoverLetter.doc' },
+        { id: 'file-3', title: 'Portfolio.pdf' },
+      ],
+    },
+    {
+      id: 'folder-2',
+      title: 'Images',
+      subtitle: '2 items',
+      children: [
+        { id: 'file-4', title: 'Photo1.jpg' },
+        { id: 'file-5', title: 'Photo2.png' },
+      ],
+    },
+  ]);
+
+  const handleChange = (newTreeData) => {
+    console.log('Tree structure changed');
+    setTreeData(newTreeData);
+  };
+
+  const getNodeKey = ({ node }) => node.id;
+
+  return (
+    <div style={{ height: '100vh' }}>
+      <ReactAppleTree
+        treeData={treeData}
+        onChange={handleChange}
+        getNodeKey={getNodeKey}
+      />
+    </div>
+  );
+}
+
+export default FileExplorer;
+```
+
+## Related Props
+
+- See [Callback Props](/api/props/callback-props) for event handlers like `onMoveNode` and `onVisibilityToggle`
+- See [Behavior Props](/api/props/behavior-props) for controlling tree behavior like `maxDepth` and `isVirtualized`
+- See [Styling Props](/api/props/styling-props) for customizing the tree's appearance

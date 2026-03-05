@@ -1,0 +1,519 @@
+---
+title: Search and Filter
+description: Implement search and filtering functionality in your tree
+---
+
+## Basic Search
+
+Add search functionality by providing `searchQuery` and `searchMethod` props:
+
+```jsx
+import React, { useState } from 'react';
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+const SearchableTree = () => {
+  const [treeData, setTreeData] = useState([
+    {
+      id: 1,
+      title: 'Node 1',
+      children: [{ id: 2, title: 'Node 1.1' }],
+    },
+    {
+      id: 3,
+      title: 'Node 2',
+      children: [
+        { id: 4, title: 'Node 2.1' },
+        { id: 5, title: 'Node 2.2', children: [{ id: 6, title: 'Node 2.2.1' }] },
+      ],
+    },
+    {
+      id: 7,
+      title: 'Node 3',
+    },
+  ]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+
+  return (
+    <div>
+      <input
+        type="text"
+        placeholder="Search tree..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        style={{
+          width: '100%',
+          padding: '8px 12px',
+          marginBottom: '16px',
+          fontSize: '14px',
+          border: '1px solid #ddd',
+          borderRadius: '4px',
+        }}
+      />
+      
+      <div style={{ height: 400 }}>
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+          searchQuery={searchQuery}
+          searchMethod={({ node, searchQuery }) => {
+            if (node.title) {
+              return String(node.title)
+                .toLowerCase()
+                .includes(searchQuery.toLowerCase());
+            }
+            return false;
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+```
+
+<Tip>
+  The `searchMethod` function is called for each node. Return `true` if the node matches the search query.
+</Tip>
+
+## Custom Search Methods
+
+Implement different search strategies:
+
+<CodeGroup>
+
+```jsx Case-Sensitive
+searchMethod={({ node, searchQuery }) => {
+  if (!searchQuery) return false;
+  return String(node.title).includes(searchQuery);
+}}
+```
+
+```jsx Search Title and Subtitle
+searchMethod={({ node, searchQuery }) => {
+  if (!searchQuery) return false;
+  
+  const query = searchQuery.toLowerCase();
+  const titleMatch = node.title
+    ? String(node.title).toLowerCase().includes(query)
+    : false;
+  const subtitleMatch = node.subtitle
+    ? String(node.subtitle).toLowerCase().includes(query)
+    : false;
+  
+  return titleMatch || subtitleMatch;
+}}
+```
+
+```jsx Search Custom Properties
+searchMethod={({ node, searchQuery }) => {
+  if (!searchQuery) return false;
+  
+  const query = searchQuery.toLowerCase();
+  return (
+    (node.title && String(node.title).toLowerCase().includes(query)) ||
+    (node.tags && node.tags.some(tag => tag.toLowerCase().includes(query))) ||
+    (node.description && node.description.toLowerCase().includes(query))
+  );
+}}
+```
+
+```jsx Regex Search
+searchMethod={({ node, searchQuery }) => {
+  if (!searchQuery) return false;
+  
+  try {
+    const regex = new RegExp(searchQuery, 'i');
+    return regex.test(String(node.title));
+  } catch (e) {
+    // Invalid regex, fall back to simple includes
+    return String(node.title)
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+  }
+}}
+```
+
+</CodeGroup>
+
+## Search with React Elements
+
+If your nodes use React elements for titles, extract text for searching:
+
+```jsx
+import { getReactElementText } from '@newtonschool/react-apple-tree/utils';
+
+searchMethod={({ node, searchQuery }) => {
+  if (!searchQuery) return false;
+  
+  let titleText = '';
+  
+  if (typeof node.title === 'object') {
+    // Extract text from React element
+    titleText = getReactElementText(node.title);
+  } else {
+    titleText = String(node.title || '');
+  }
+  
+  return titleText.toLowerCase().includes(searchQuery.toLowerCase());
+}}
+```
+
+## Search Focus Navigation
+
+Navigate through search matches using `searchFocusOffset`:
+
+```jsx
+import React, { useState, useEffect } from 'react';
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+const SearchWithNavigation = () => {
+  const [treeData, setTreeData] = useState([/* ... */]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocusIndex, setSearchFocusIndex] = useState(0);
+  const [matchCount, setMatchCount] = useState(0);
+
+  // Reset focus index when search query changes
+  useEffect(() => {
+    setSearchFocusIndex(0);
+  }, [searchQuery]);
+
+  const goToNextMatch = () => {
+    setSearchFocusIndex((prev) => (prev + 1) % matchCount);
+  };
+
+  const goToPrevMatch = () => {
+    setSearchFocusIndex((prev) => (prev - 1 + matchCount) % matchCount);
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <input
+          type="text"
+          placeholder="Search..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{ flex: 1, padding: '8px 12px' }}
+        />
+        <button onClick={goToPrevMatch} disabled={matchCount === 0}>
+          ⬆️ Previous
+        </button>
+        <button onClick={goToNextMatch} disabled={matchCount === 0}>
+          ⬇️ Next
+        </button>
+        <span style={{ alignSelf: 'center', color: '#666' }}>
+          {matchCount > 0 ? `${searchFocusIndex + 1} / ${matchCount}` : 'No matches'}
+        </span>
+      </div>
+
+      <div style={{ height: 400 }}>
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+          searchQuery={searchQuery}
+          searchFocusOffset={searchFocusIndex}
+          searchMethod={({ node, searchQuery }) => {
+            return String(node.title)
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase());
+          }}
+          searchFinishCallback={(matches) => {
+            setMatchCount(matches.length);
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+```
+
+<Note>
+  The focused match gets `isSearchFocus: true` in `generateNodeProps`, allowing you to style it differently.
+</Note>
+
+## Expand Only Matched Nodes
+
+Use `onlyExpandSearchedNodes` to collapse all non-matching branches:
+
+```jsx
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  searchQuery={searchQuery}
+  searchMethod={({ node, searchQuery }) => {
+    return String(node.title)
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+  }}
+  onlyExpandSearchedNodes={true}
+/>
+```
+
+This is useful for large trees where you want to focus only on search results.
+
+## Search Finish Callback
+
+Use `searchFinishCallback` to get information about search results:
+
+```jsx
+const [searchStats, setSearchStats] = useState({
+  totalMatches: 0,
+  matchedPaths: [],
+});
+
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  searchQuery={searchQuery}
+  searchMethod={({ node, searchQuery }) => {
+    return String(node.title)
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+  }}
+  searchFinishCallback={(matches) => {
+    setSearchStats({
+      totalMatches: matches.length,
+      matchedPaths: matches.map(m => m.path),
+    });
+    
+    console.log('Search results:', matches);
+    // matches is an array of { node, path, treeIndex }
+  }}
+/>
+
+{searchQuery && (
+  <div style={{ marginTop: 8, color: '#666' }}>
+    Found {searchStats.totalMatches} match{searchStats.totalMatches !== 1 ? 'es' : ''}
+  </div>
+)}
+```
+
+## Highlighting Search Matches
+
+Style search matches using `generateNodeProps`:
+
+```jsx
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  searchQuery={searchQuery}
+  searchMethod={({ node, searchQuery }) => {
+    return String(node.title)
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+  }}
+  generateNodeProps={({ node, isSearchMatch, isSearchFocus }) => ({
+    style: {
+      backgroundColor: isSearchFocus
+        ? '#ffd54f' // Bright yellow for focused match
+        : isSearchMatch
+        ? '#fff9c4' // Light yellow for other matches
+        : 'transparent',
+      borderLeft: isSearchFocus ? '3px solid #ffa000' : 'none',
+      padding: '4px 8px',
+      borderRadius: '4px',
+      transition: 'all 0.2s ease',
+    },
+  })}
+/>
+```
+
+## Advanced: Highlight Search Terms
+
+Highlight the actual search term within the title:
+
+```jsx
+const highlightText = (text, query) => {
+  if (!query) return text;
+  
+  const parts = text.split(new RegExp(`(${query})`, 'gi'));
+  
+  return (
+    <span>
+      {parts.map((part, i) =>
+        part.toLowerCase() === query.toLowerCase() ? (
+          <mark key={i} style={{ backgroundColor: '#ffd54f', padding: '0 2px' }}>
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </span>
+  );
+};
+
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  searchQuery={searchQuery}
+  searchMethod={({ node, searchQuery }) => {
+    return String(node.title)
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+  }}
+  generateNodeProps={({ node }) => ({
+    title: () => highlightText(node.title, searchQuery),
+  })}
+/>
+```
+
+## Complete Search Example
+
+Here's a full example with all search features:
+
+```jsx
+import React, { useState, useEffect } from 'react';
+import ReactAppleTree from '@newtonschool/react-apple-tree';
+
+const FullSearchExample = () => {
+  const [treeData, setTreeData] = useState([
+    {
+      id: 1,
+      title: 'Documents',
+      children: [
+        { id: 2, title: 'Report.pdf' },
+        { id: 3, title: 'Invoice.pdf' },
+      ],
+    },
+    {
+      id: 4,
+      title: 'Images',
+      children: [
+        { id: 5, title: 'Photo1.jpg' },
+        { id: 6, title: 'Photo2.jpg' },
+      ],
+    },
+  ]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocusIndex, setSearchFocusIndex] = useState(0);
+  const [matchCount, setMatchCount] = useState(0);
+  const [collapseNonMatches, setCollapseNonMatches] = useState(false);
+
+  useEffect(() => {
+    setSearchFocusIndex(0);
+  }, [searchQuery]);
+
+  return (
+    <div>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <input
+            type="text"
+            placeholder="Search tree..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ flex: 1, padding: '8px 12px' }}
+          />
+          <button
+            onClick={() => setSearchFocusIndex((prev) => Math.max(0, prev - 1))}
+            disabled={matchCount === 0}
+          >
+            ⬆️
+          </button>
+          <button
+            onClick={() => setSearchFocusIndex((prev) => Math.min(matchCount - 1, prev + 1))}
+            disabled={matchCount === 0}
+          >
+            ⬇️
+          </button>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '14px' }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={collapseNonMatches}
+              onChange={(e) => setCollapseNonMatches(e.target.checked)}
+            />
+            {' '}Only show matches
+          </label>
+          <span style={{ marginLeft: 'auto', color: '#666' }}>
+            {searchQuery && (
+              matchCount > 0
+                ? `${searchFocusIndex + 1} / ${matchCount} matches`
+                : 'No matches'
+            )}
+          </span>
+        </div>
+      </div>
+
+      <div style={{ height: 400 }}>
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id}
+          searchQuery={searchQuery}
+          searchFocusOffset={searchFocusIndex}
+          onlyExpandSearchedNodes={collapseNonMatches}
+          searchMethod={({ node, searchQuery }) => {
+            if (!searchQuery) return false;
+            return String(node.title)
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase());
+          }}
+          searchFinishCallback={(matches) => {
+            setMatchCount(matches.length);
+          }}
+          generateNodeProps={({ node, isSearchMatch, isSearchFocus }) => ({
+            style: {
+              backgroundColor: isSearchFocus
+                ? '#ffd54f'
+                : isSearchMatch
+                ? '#fff9c4'
+                : 'transparent',
+              borderLeft: isSearchFocus ? '3px solid #ffa000' : 'none',
+              padding: '4px 8px',
+              borderRadius: '4px',
+            },
+          })}
+        />
+      </div>
+    </div>
+  );
+};
+```
+
+## Search Performance Tips
+
+<Tip>
+  For large trees with thousands of nodes:
+  
+  1. **Debounce search input** - Wait for user to stop typing
+  2. **Cache search results** - Don't re-search unchanged queries
+  3. **Use efficient string matching** - Consider libraries like `fuse.js` for fuzzy search
+  4. **Enable virtualization** - Keep `isVirtualized={true}` (default)
+</Tip>
+
+```jsx
+import { useMemo } from 'react';
+import debounce from 'lodash/debounce';
+
+const [searchInput, setSearchInput] = useState('');
+const [searchQuery, setSearchQuery] = useState('');
+
+// Debounce search to avoid excessive re-renders
+const debouncedSetSearch = useMemo(
+  () => debounce((value) => setSearchQuery(value), 300),
+  []
+);
+
+const handleSearchChange = (e) => {
+  const value = e.target.value;
+  setSearchInput(value);
+  debouncedSetSearch(value);
+};
+```
+
+## Next Steps
+
+- [Advanced Features](/examples/advanced-features) - Multiple trees, RTL, and performance
+- [API Reference](/api-reference/component-props) - Complete search props reference
+- [Helper Functions](/api-reference/helper-functions) - Utility functions for tree manipulation
