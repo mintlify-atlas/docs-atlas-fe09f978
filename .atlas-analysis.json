@@ -97,6 +97,9 @@
   "publicApiSurface": [
     "ReactAppleTree (default export)",
     "ReactAppleTreeWithoutDndContext",
+    "ReactAppleTreeProps (type export)",
+    "defaultGetNodeKey",
+    "defaultSearchMethod",
     "getTreeFromFlatData",
     "getFlatDataFromTree",
     "addNodeUnderParent",

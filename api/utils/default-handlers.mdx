@@ -1,0 +1,286 @@
+---
+title: "Default Handlers"
+description: "Default handler functions provided by React Apple Tree"
+---
+
+## Overview
+
+React Apple Tree exports default handler functions that provide sensible defaults for common operations. These can be used as-is or as references for implementing custom handlers.
+
+## defaultGetNodeKey
+
+Default function for generating node keys based on tree index.
+
+```typescript
+function defaultGetNodeKey({ treeIndex }: TreeIndex): NodeKey
+```
+
+<ParamField path="treeIndex" type="number" required>
+  The index of the node in the tree
+</ParamField>
+
+<ResponseField name="return" type="NodeKey">
+  The tree index, used as the node's unique key
+</ResponseField>
+
+### Example
+
+```typescript
+import { defaultGetNodeKey } from '@newtonschool/react-apple-tree';
+
+// Use as the getNodeKey prop
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={defaultGetNodeKey}
+/>
+
+// Equivalent to:
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ treeIndex }) => treeIndex}
+/>
+```
+
+<Note>
+Using tree index as the key is simple but can cause issues if nodes are frequently reordered. Consider using a stable ID field from your data instead.
+</Note>
+
+### When to Use
+
+- **Quick prototyping** - When you don't have unique IDs in your data yet
+- **Static trees** - When the tree structure rarely changes
+- **Testing** - For simple test cases
+
+### When NOT to Use
+
+- **Dynamic trees** - When nodes are frequently added, removed, or moved
+- **Persisted state** - When you need to save/restore tree state
+- **Unique IDs available** - When your data has stable unique identifiers
+
+<Warning>
+Using tree index as the key means that a node's key changes when nodes above it are added or removed. Always prefer using stable IDs from your data when available.
+</Warning>
+
+### Better Alternative
+
+```typescript
+// Recommended: Use stable IDs from your data
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+/>
+```
+
+---
+
+## defaultSearchMethod
+
+Default search method that matches nodes by title and subtitle.
+
+```typescript
+function defaultSearchMethod({
+  node,
+  path,
+  treeIndex,
+  searchQuery,
+}: SearchData): boolean
+```
+
+<ParamField path="node" type="TreeItem" required>
+  The node being evaluated
+</ParamField>
+
+<ParamField path="path" type="NumberOrStringArray" required>
+  The path to the node
+</ParamField>
+
+<ParamField path="treeIndex" type="number" required>
+  The index of the node in the tree
+</ParamField>
+
+<ParamField path="searchQuery" type="any" required>
+  The search query (typically a string)
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if the node matches the search query, false otherwise
+</ResponseField>
+
+### Behavior
+
+The default search method:
+1. Converts the search query to lowercase
+2. Converts node title and subtitle to lowercase strings
+3. Returns true if either title or subtitle contains the search query
+
+### Example
+
+```typescript
+import { defaultSearchMethod } from '@newtonschool/react-apple-tree';
+
+// Use as the searchMethod prop
+<ReactAppleTree
+  treeData={treeData}
+  onChange={setTreeData}
+  getNodeKey={({ node }) => node.id}
+  searchQuery={searchText}
+  searchMethod={defaultSearchMethod}
+/>
+```
+
+### Implementation Reference
+
+```typescript
+// Actual implementation from source
+export function defaultSearchMethod({
+  node,
+  searchQuery,
+}: SearchData): boolean {
+  if (typeof searchQuery !== 'string') {
+    return false;
+  }
+
+  const query = searchQuery.toLowerCase();
+  
+  // Check title
+  const title = typeof node.title === 'string' 
+    ? node.title.toLowerCase() 
+    : String(node.title || '').toLowerCase();
+  
+  if (title.includes(query)) {
+    return true;
+  }
+
+  // Check subtitle
+  const subtitle = typeof node.subtitle === 'string'
+    ? node.subtitle.toLowerCase()
+    : String(node.subtitle || '').toLowerCase();
+  
+  return subtitle.includes(query);
+}
+```
+
+### Custom Search Methods
+
+While `defaultSearchMethod` is convenient, you often need custom search logic:
+
+```typescript
+// Case-sensitive search
+const caseSensitiveSearch = ({ node, searchQuery }) => {
+  return node.title?.toString().includes(searchQuery) || false;
+};
+
+// Multi-field search
+const multiFieldSearch = ({ node, searchQuery }) => {
+  const query = searchQuery.toLowerCase();
+  const fields = [
+    node.title,
+    node.subtitle,
+    node.description,
+    node.tags?.join(' '),
+  ].filter(Boolean);
+  
+  return fields.some(field => 
+    field.toString().toLowerCase().includes(query)
+  );
+};
+
+// Regex search
+const regexSearch = ({ node, searchQuery }) => {
+  if (!(searchQuery instanceof RegExp)) return false;
+  return searchQuery.test(node.title?.toString() || '');
+};
+
+// Fuzzy search with threshold
+const fuzzySearch = ({ node, searchQuery }) => {
+  const title = node.title?.toString().toLowerCase() || '';
+  const query = searchQuery.toLowerCase();
+  
+  // Simple fuzzy matching
+  let queryIndex = 0;
+  for (let i = 0; i < title.length && queryIndex < query.length; i++) {
+    if (title[i] === query[queryIndex]) {
+      queryIndex++;
+    }
+  }
+  
+  return queryIndex === query.length;
+};
+```
+
+<Tip>
+Create custom search methods to match your specific use case. The default is just a starting point.
+</Tip>
+
+---
+
+## Complete Example
+
+```typescript
+import React, { useState } from 'react';
+import ReactAppleTree, {
+  defaultGetNodeKey,
+  defaultSearchMethod,
+} from '@newtonschool/react-apple-tree';
+
+interface MyNode {
+  id: string;
+  title: string;
+  subtitle?: string;
+  children?: MyNode[];
+}
+
+const SimpleTree = () => {
+  const [treeData, setTreeData] = useState<MyNode[]>([
+    {
+      id: '1',
+      title: 'Documents',
+      subtitle: 'My files',
+      children: [
+        { id: '2', title: 'Resume.pdf', subtitle: 'Updated today' },
+        { id: '3', title: 'Cover Letter.docx' },
+      ],
+    },
+  ]);
+  
+  const [searchText, setSearchText] = useState('');
+
+  return (
+    <div>
+      <input
+        type="text"
+        placeholder="Search..."
+        value={searchText}
+        onChange={(e) => setSearchText(e.target.value)}
+        style={{ marginBottom: 10, padding: 8, width: '100%' }}
+      />
+      
+      <div style={{ height: 400 }}>
+        <ReactAppleTree
+          treeData={treeData}
+          onChange={setTreeData}
+          getNodeKey={({ node }) => node.id} // Better than defaultGetNodeKey
+          searchQuery={searchText}
+          searchMethod={defaultSearchMethod}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default SimpleTree;
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Required Props" icon="star" href="/api/props/required-props">
+    Learn about the three required props
+  </Card>
+  <Card title="Search Props" icon="magnifying-glass" href="/api/props/search-props">
+    Deep dive into search functionality
+  </Card>
+</CardGroup>

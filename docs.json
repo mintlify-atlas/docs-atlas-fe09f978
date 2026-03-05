@@ -83,7 +83,8 @@
               "api/utils/tree-traversal",
               "api/utils/tree-manipulation",
               "api/utils/data-conversion",
-              "api/utils/search-operations"
+              "api/utils/search-operations",
+              "api/utils/default-handlers"
             ]
           },
           {
