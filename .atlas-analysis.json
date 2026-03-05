@@ -1,0 +1,118 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "React Apple Tree",
+  "projectDescription": "A React component library for building drag-and-drop sortable hierarchical tree structures with search and virtualization.",
+  "theme": "palm",
+  "primaryColor": "#34C759",
+  "lightColor": "#30D158",
+  "darkColor": "#32D74B",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/component-overview",
+              "concepts/tree-data-structure",
+              "concepts/tree-operations",
+              "concepts/drag-and-drop"
+            ]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "examples/basic-usage",
+              "examples/custom-styling",
+              "examples/search-and-filter",
+              "examples/advanced-features"
+            ]
+          },
+          {
+            "group": "Migration",
+            "pages": [
+              "migration/from-react-sortable-tree"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Components",
+            "pages": [
+              "api/react-apple-tree",
+              "api/react-apple-tree-without-dnd"
+            ]
+          },
+          {
+            "group": "Props",
+            "pages": [
+              "api/props/required-props",
+              "api/props/callback-props",
+              "api/props/behavior-props",
+              "api/props/styling-props",
+              "api/props/search-props"
+            ]
+          },
+          {
+            "group": "Utility Functions",
+            "pages": [
+              "api/utils/tree-traversal",
+              "api/utils/tree-manipulation",
+              "api/utils/data-conversion",
+              "api/utils/search-operations"
+            ]
+          },
+          {
+            "group": "TypeScript",
+            "pages": [
+              "api/typescript/types",
+              "api/typescript/interfaces"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Drag-and-drop hierarchical tree with React DnD",
+    "Virtualization for large datasets with react-window",
+    "Built-in search and filtering capabilities",
+    "Comprehensive utility functions for tree manipulation",
+    "Full TypeScript support with detailed type definitions",
+    "RTL (right-to-left) layout support",
+    "Customizable node rendering and styling"
+  ],
+  "publicApiSurface": [
+    "ReactAppleTree (default export)",
+    "ReactAppleTreeWithoutDndContext",
+    "getTreeFromFlatData",
+    "getFlatDataFromTree",
+    "addNodeUnderParent",
+    "removeNode",
+    "removeNodeAtPath",
+    "changeNodeAtPath",
+    "map",
+    "walk",
+    "getDescendantCount",
+    "getVisibleNodeCount",
+    "getVisibleNodeInfoAtIndex",
+    "toggleExpandedForAll",
+    "getNodeAtPath",
+    "insertNode",
+    "find",
+    "isDescendant",
+    "getDepth"
+  ]
+}
